@@ -1,0 +1,193 @@
+server:
+  port: 8035
+spring:
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+  application:
+    name: th-eas
+
+  datasource:
+    druid:
+      url: jdbc:mysql://10.10.116.21:3306/th_eas?useUnicode=true&useSSL=false&characterEncoding=utf8&rewriteBatchedStatements=true&serverTimezone=Asia/Shanghai
+      username: ebaby
+      password: ebaby898%^^&
+      name: th-eas
+      type: com.alibaba.druid.pool.DruidDataSource
+      initial-size: 5
+      min-idle: 5
+      max-active: 20
+      max-wait: 30000
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+      validation-query: select 1
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      pool-prepared-statements: true
+      max-open-prepared-statements: 20
+      max-pool-prepared-statement-per-connection-size: 20
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+
+  redis:
+    host: 10.10.116.26
+    port: 16379
+    password: redis*(33Pass
+    lettuce:
+      pool:
+        max-active: 300
+        max-idle: 100
+        max-wait: -1
+        min-idle: 20
+      shutdown-timeout: 10000
+  rabbitmq:
+    host: 10.10.116.26
+    port: 5672
+    username: admin
+    password: admin*)^&*
+
+ribbon:
+  ConnectTimeout: 10000
+  ReadTimeout: 300000
+
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: com.thchengtay.eas.model.entity,com.thchengtay.eas.model.dto,
+  check-config-location: true
+  configuration:
+    default-enum-type-handler: com.baomidou.mybatisplus.extension.handlers.MybatisEnumTypeHandler
+    cache-enabled: false
+    local-cache-scope: statement
+    default-executor-type: reuse
+    map-underscore-to-camel-case: true
+    #krui-
+    #log-impl: com.thchengtay.saps.config.LogbackImpl
+    #object-wrapper-factory: com.baomidou.mybatisplus.extension.MybatisMapWrapperFactory
+    use-generated-keys: true
+    defaultStatementTimeout: 1000
+    jdbc-type-for-null: null
+    call-setters-on-nulls: true
+  global-config:
+    banner: false
+    db-config:
+      logic-not-delete-value: 0
+      logic-delete-value: 1
+
+#fdfs:
+#  soTimeout: 1500 #socket连接超时时长
+#  connectTimeout: 600 #连接tracker服务器超时时长
+#  thumbImage: #缩略图生成参数，可选
+#    width: 800
+#    height: 600
+#  trackerList: 10.10.116.26:22122
+#upload:
+#  domain: http://10.10.116.26:8888/
+#  #  domain: http://47.97.26.13:8888/
+#  press-less-than: 2097157
+
+fdfs:
+  soTimeout: 1500 #socket连接超时时长
+  connectTimeout: 600 #连接tracker服务器超时时长
+  thumbImage: #缩略图生成参数，可选
+    width: 800
+    height: 600
+  trackerList: 47.97.40.19:22122
+upload:
+  domain: http://devfiles.lianrongbao.cn/
+  press-less-than: 2097157
+
+xxl:
+  job:
+    accessToken:
+    admin:
+      addresses: http://10.10.116.26:38080/xxl-job-admin
+    executor:
+      address:
+      appname: amp-saps
+      ip:
+      port: 9898
+      logpath: xxljob
+      logretentiondays: 30
+
+webhook: https://oapi.dingtalk.com/robot/send?access_token=f7a68cecc72f945d0fe7f9567eada462edd87441f3d3f252bb0f39919ba5db92
+#展期钉钉通知
+graceDayWebhook: https://oapi.dingtalk.com/robot/send?access_token=f7a68cecc72f945d0fe7f9567eada462edd87441f3d3f252bb0f39919ba5db92
+
+etcNoticeUrl: https://testgateway.lianrongbao.cn/thctay-service-crm/basic/bond/saps/changeResidueByAccount
+
+#部分结算科目优先级,007-逾期费,004-平台服务费。顺序在前,优先级越高
+pend:
+  bill:
+    subjectNos:
+      - P0007
+      - P0004
+      - P0005
+      - P0003
+      - P0001
+
+bill:
+  upload:
+    templateFile: D://hlj//
+    tempPath: D://hlj//temp//
+
+html:
+  to:
+    pdf: D://wkhtmltopdf//bin//wkhtmltopdf.exe
+
+#通知测试模式
+notify:
+  enabled: true
+  test:
+    enabled: true
+    phone: 13262893751
+    email: yufanghua@thchengtay.com
+    wechat: ovPi103l-lL6Os25-7ZE0Zj-NfS8
+
+#jwt
+jwt:
+  header: Authorization
+  # 令牌前缀
+  token-start-with: Bearer
+  # 必须使用最少88位的Base64对该令牌进行编码
+  base64-secret: ZmQ0ZGI5NjQ0MDQwY2I4MjMxY2Y3ZmI3MjdhN2ZmMjNhODViOTg1ZGE0NTBjMGM4NDA5NzYxMjdjOWMwYWRmZTBlZjlhNGY3ZTg4Y2U3YTE1ODVkZDU5Y2Y3OGYwZWE1NzUzNWQ2YjFjZDc0NGMxZWU2MmQ3MjY1NzJmNTE0MzI=
+  # 令牌过期时间 此处单位/毫秒 ，默认4小时，可在此网站生成 https://www.convertworld.com/zh-hans/time/milliseconds.html
+  token-validity-in-seconds: 14400000
+  # 在线用户key
+  online-key: online-token-
+  # 验证码
+  code-key: code-key-
+  # token 续期检查时间范围（默认30分钟，单位毫秒），在token即将过期的一段时间内用户操作了，则给用户的token续期
+  detect: 1800000
+  # 续期时间范围，默认1小时，单位毫秒
+  renew: 3600000
+pagePath:
+generateConfKey: consume.bill.reminder
+successConfKey: successful.repayment.reminder
+needRecalculateCustomerBillKey: Y
+
+partner:
+  bill:
+    pdf:
+      tmpl:
+        path: /mnt/server/saps/partnerBill/template
+      font:
+        path: C:/Windows/Fonts/simsun.ttc
+
+discountExpressWayIds: HEILONGJIANG,JIANGSU
+
+agreementAmount: 1000
+
+neCustomerCodes: "a"
+
+amp:
+  partner:
+    jiMiCooperationCode: HZF000118
+    jiKeCooperationCode: HZF000036
+    qmqbOnlinpayFeeRate: 0.0026
+    plusDays: 4
+    pushFlag: true
+    projectNos:
+      - XXT-PRJ-QMQB-A

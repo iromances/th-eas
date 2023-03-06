@@ -1,0 +1,338 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<configuration scan="true" scanPeriod="2000" debug="false">
+    <contextName>thctay-amp-saps</contextName>
+
+    <conversionRule conversionWord="clr" converterClass="org.springframework.boot.logging.logback.ColorConverter" />
+    <conversionRule conversionWord="wex" converterClass="org.springframework.boot.logging.logback.WhitespaceThrowableProxyConverter" />
+    <conversionRule conversionWord="wEx" converterClass="org.springframework.boot.logging.logback.ExtendedWhitespaceThrowableProxyConverter" />
+
+
+    <!--<include resource="org/springframework/boot/logging/logback/base.xml"/>-->
+    <property name="filePath" value="${user.dir}/logs"></property>
+    <property name="consolePatternFormat" value="${CONSOLE_LOG_PATTERN:-%clr(%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}}"></property>
+    <property name="filePatternFormat" value="${FILE_LOG_PATTERN:-%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}} ${LOG_LEVEL_PATTERN:-%5p} ${PID:- } --- [%t] %-40.40logger{39} : %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}}"></property>
+
+
+
+    <!-- %d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger Line:%-3L - %msg%n-->
+    <!-- 普通日志 -->
+    <property scope="context" name="appName" value="amp-saps"/>
+    <springProperty scope="context" name="appName"  source="spring.application.name" defaultValue="thctay-amp-saps"/>
+
+
+    <!-- 错误日志 -->
+    <!-- <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+         <file>${filePath}/error.log</file>
+         &lt;!&ndash; 循环政策：基于时间创建日志文件 &ndash;&gt;
+         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+             &lt;!&ndash; 日志命名:单个文件大于2MB 按照时间+自增i 生成log文件 &ndash;&gt;
+             <fileNamePattern>${filePath}/error-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+             <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                 <maxFileSize>50MB</maxFileSize>
+             </timeBasedFileNamingAndTriggeringPolicy>
+             &lt;!&ndash; 最大保存时间：180天&ndash;&gt;
+             <maxHistory>180</maxHistory>
+         </rollingPolicy>
+         <append>true</append>
+         &lt;!&ndash; 日志格式 &ndash;&gt;
+         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+             <pattern>${patternFormat}</pattern>
+             <charset>utf-8</charset>
+         </encoder>
+         &lt;!&ndash; 日志级别过滤器 &ndash;&gt;
+         <filter class="ch.qos.logback.classic.filter.LevelFilter">
+             &lt;!&ndash; 过滤的级别 &ndash;&gt;
+             <level>ERROR</level>
+             &lt;!&ndash; 匹配时的操作：接收（记录） &ndash;&gt;
+             <onMatch>ACCEPT</onMatch>
+             &lt;!&ndash; 不匹配时的操作：拒绝（不记录） &ndash;&gt;
+             <onMismatch>DENY</onMismatch>
+         </filter>
+     </appender>-->
+    <!-- 控制台 -->
+
+    <appender name="LOGSTASH-PROD" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+        <param name="Encoding" value="UTF-8"/>
+        <remoteHost>116.62.241.157</remoteHost>
+        <port>4569</port>
+        <encoder charset="UTF-8" class="net.logstash.logback.encoder.LogstashEncoder">
+            <provider class="org.apache.skywalking.apm.toolkit.log.logback.v1.x.logstash.TraceIdJsonProvider">
+            </provider>
+        </encoder>
+        <filter class = "ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>DEBUG</level>
+        </filter>
+        <connectionStrategy>
+            <roundRobin>
+                <connectionTTL>5 minutes</connectionTTL>
+            </roundRobin>
+        </connectionStrategy>
+    </appender>
+
+
+    <appender name="LOGSTASH-PRE" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+        <param name="Encoding" value="UTF-8"/>
+        <remoteHost>127.0.0.1</remoteHost>
+        <port>4569</port>
+        <encoder charset="UTF-8" class="net.logstash.logback.encoder.LogstashEncoder">
+            <provider class="org.apache.skywalking.apm.toolkit.log.logback.v1.x.logstash.TraceIdJsonProvider">
+            </provider>
+        </encoder>
+        <filter class = "ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>DEBUG</level>
+        </filter>
+        <connectionStrategy>
+            <roundRobin>
+                <connectionTTL>5 minutes</connectionTTL>
+            </roundRobin>
+        </connectionStrategy>
+    </appender>
+
+    <appender name="LOGSTASH-SIT" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+        <param name="Encoding" value="UTF-8"/>
+        <remoteHost>127.0.0.1</remoteHost>
+        <port>4569</port>
+        <encoder charset="UTF-8" class="net.logstash.logback.encoder.LogstashEncoder">
+            <provider class="org.apache.skywalking.apm.toolkit.log.logback.v1.x.logstash.TraceIdJsonProvider">
+            </provider>
+        </encoder>
+        <filter class = "ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>DEBUG</level>
+        </filter>
+        <connectionStrategy>
+            <roundRobin>
+                <connectionTTL>5 minutes</connectionTTL>
+            </roundRobin>
+        </connectionStrategy>
+    </appender>
+
+    <appender name="LOGSTASH-UAT" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+        <param name="Encoding" value="UTF-8"/>
+        <remoteHost>116.62.241.157</remoteHost>
+        <port>4569</port>
+        <encoder charset="UTF-8" class="net.logstash.logback.encoder.LogstashEncoder">
+            <provider class="org.apache.skywalking.apm.toolkit.log.logback.v1.x.logstash.TraceIdJsonProvider">
+            </provider>
+        </encoder>
+        <filter class = "ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>DEBUG</level>
+        </filter>
+        <connectionStrategy>
+            <roundRobin>
+                <connectionTTL>5 minutes</connectionTTL>
+            </roundRobin>
+        </connectionStrategy>
+    </appender>
+
+
+    <appender name="LOGSTASH-TEST" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+        <param name="Encoding" value="UTF-8"/>
+        <remoteHost>116.62.241.157</remoteHost>
+        <port>4569</port>
+        <encoder charset="UTF-8" class="net.logstash.logback.encoder.LogstashEncoder">
+            <provider class="org.apache.skywalking.apm.toolkit.log.logback.v1.x.logstash.TraceIdJsonProvider">
+            </provider>
+        </encoder>
+        <filter class = "ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>DEBUG</level>
+        </filter>
+        <connectionStrategy>
+            <roundRobin>
+                <connectionTTL>5 minutes</connectionTTL>
+            </roundRobin>
+        </connectionStrategy>
+    </appender>
+
+    <appender name="LOGSTASH-DEV" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+        <param name="Encoding" value="UTF-8"/>
+        <remoteHost>116.62.241.157</remoteHost>
+        <port>4569</port>
+        <encoder charset="UTF-8" class="net.logstash.logback.encoder.LogstashEncoder">
+            <provider class="org.apache.skywalking.apm.toolkit.log.logback.v1.x.logstash.TraceIdJsonProvider">
+            </provider>
+        </encoder>
+        <filter class = "ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>DEBUG</level>
+        </filter>
+        <connectionStrategy>
+            <roundRobin>
+                <connectionTTL>5 minutes</connectionTTL>
+            </roundRobin>
+        </connectionStrategy>
+    </appender>
+
+    <appender name="LOGSTASH-DEV-AMP" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+        <param name="Encoding" value="UTF-8"/>
+        <remoteHost>10.10.116.26</remoteHost>
+        <port>4569</port>
+        <encoder charset="UTF-8" class="net.logstash.logback.encoder.LogstashEncoder">
+            <provider class="org.apache.skywalking.apm.toolkit.log.logback.v1.x.logstash.TraceIdJsonProvider">
+            </provider>
+        </encoder>
+        <connectionStrategy>
+            <roundRobin>
+                <connectionTTL>5 minutes</connectionTTL>
+            </roundRobin>
+        </connectionStrategy>
+    </appender>
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <!-- 日志格式 -->
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${consolePatternFormat}</pattern>
+            <charset>utf-8</charset>
+        </encoder>
+    </appender>
+
+
+    <appender name="INFO_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <append>true</append>
+        <file>${filePath}/info.log</file>
+        <filter class = "ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>DEBUG</level>
+        </filter>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${filePatternFormat}</pattern>
+            <charset>utf-8</charset>
+        </encoder>
+        <!-- 循环政策：基于时间创建日志文件 -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- 日志命名:单个文件大于128MB 按照时间+自增i 生成log文件 -->
+            <fileNamePattern>${filePath}/info-%d{yyyyMMdd}.%i.zip</fileNamePattern>
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>512MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+            <!-- 最大保存时间：30天-->
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+    </appender>
+
+    <appender name="SENTRY" class="io.sentry.logback.SentryAppender">
+        <!-- Optionally change minimum Event level. Default for Events is ERROR -->
+        <!--<minimumEventLevel>DEBUG</minimumEventLevel>-->
+        <!-- Optionally change minimum Breadcrumbs level. Default for Breadcrumbs is INFO -->
+        <minimumBreadcrumbLevel>DEBUG</minimumBreadcrumbLevel>
+    </appender>
+
+    <springProfile name="dev">
+        <logger name="com.amp.saps" level="DEBUG" additivity="false" >
+            <appender-ref ref="INFO_FILE"/>
+            <appender-ref ref="STDOUT"/>
+            <appender-ref ref="LOGSTASH-DEV"/>
+            <appender-ref ref="SENTRY"/>
+        </logger>
+        <root level="INFO">
+            <appender-ref ref="INFO_FILE"/>
+            <appender-ref ref="STDOUT"/>
+            <appender-ref ref="LOGSTASH-DEV"/>
+            <appender-ref ref="SENTRY"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="dev-amp">
+        <logger name="com.amp.saps" level="DEBUG" additivity="false" >
+            <appender-ref ref="INFO_FILE"/>
+            <appender-ref ref="STDOUT"/>
+            <appender-ref ref="LOGSTASH-DEV-AMP"/>
+            <appender-ref ref="SENTRY"/>
+        </logger>
+        <root level="INFO">
+            <appender-ref ref="INFO_FILE"/>
+            <appender-ref ref="STDOUT"/>
+            <appender-ref ref="LOGSTASH-DEV-AMP"/>
+            <appender-ref ref="SENTRY"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="test">
+        <logger name="com.amp.saps" level="DEBUG" additivity="false" >
+            <appender-ref ref="INFO_FILE"/>
+            <appender-ref ref="STDOUT"/>
+            <appender-ref ref="LOGSTASH-TEST"/>
+            <appender-ref ref="SENTRY"/>
+        </logger>
+        <root level="INFO">
+            <appender-ref ref="INFO_FILE"/>
+            <appender-ref ref="STDOUT"/>
+            <appender-ref ref="LOGSTASH-TEST"/>
+            <appender-ref ref="SENTRY"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="sit">
+        <logger name="com.amp.saps" level="DEBUG" additivity="false" >
+            <appender-ref ref="INFO_FILE"/>
+            <appender-ref ref="STDOUT"/>
+            <appender-ref ref="LOGSTASH-SIT"/>
+            <appender-ref ref="SENTRY"/>
+        </logger>
+        <root level="INFO">
+            <appender-ref ref="INFO_FILE"/>
+            <appender-ref ref="STDOUT"/>
+            <appender-ref ref="LOGSTASH-SIT"/>
+            <appender-ref ref="SENTRY"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="uat">
+        <logger name="com.amp.saps" level="DEBUG" additivity="false" >
+            <appender-ref ref="INFO_FILE"/>
+            <appender-ref ref="STDOUT"/>
+            <appender-ref ref="LOGSTASH-UAT"/>
+            <appender-ref ref="SENTRY"/>
+        </logger>
+        <root level="INFO">
+            <appender-ref ref="INFO_FILE"/>
+            <appender-ref ref="STDOUT"/>
+            <appender-ref ref="LOGSTASH-UAT"/>
+            <appender-ref ref="SENTRY"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="pre">
+        <logger name="com.amp.saps" level="DEBUG" additivity="false" >
+            <appender-ref ref="INFO_FILE"/>
+            <appender-ref ref="STDOUT"/>
+            <appender-ref ref="LOGSTASH-PRE"/>
+            <appender-ref ref="SENTRY"/>
+        </logger>
+        <root level="INFO">
+            <appender-ref ref="INFO_FILE"/>
+            <appender-ref ref="STDOUT"/>
+            <appender-ref ref="LOGSTASH-PRE"/>
+            <appender-ref ref="SENTRY"/>
+        </root>
+    </springProfile>
+
+
+    <springProfile name="fat">
+        <logger name="com.amp.saps" level="DEBUG" additivity="false" >
+            <appender-ref ref="INFO_FILE"/>
+            <appender-ref ref="STDOUT"/>
+            <appender-ref ref="LOGSTASH-PRE"/>
+            <appender-ref ref="SENTRY"/>
+        </logger>
+        <root level="INFO">
+            <appender-ref ref="INFO_FILE"/>
+            <appender-ref ref="STDOUT"/>
+            <appender-ref ref="LOGSTASH-PRE"/>
+            <appender-ref ref="SENTRY"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="prod">
+        <logger name="com.amp.saps" level="DEBUG" additivity="false" >
+            <appender-ref ref="INFO_FILE"/>
+            <appender-ref ref="STDOUT"/>
+            <appender-ref ref="LOGSTASH-PROD"/>
+            <appender-ref ref="SENTRY"/>
+        </logger>
+        <root level="INFO">
+            <appender-ref ref="INFO_FILE"/>
+            <appender-ref ref="STDOUT"/>
+            <appender-ref ref="LOGSTASH-PROD"/>
+            <appender-ref ref="SENTRY"/>
+        </root>
+    </springProfile>
+
+</configuration>

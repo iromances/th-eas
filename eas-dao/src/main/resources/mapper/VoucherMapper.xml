@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.thchengtay.eas.dao.VoucherMapper">
+
+    <select id="listLoanOrderVoucher" parameterType="LoanOrderCriteria" resultType="LoanOrderDto">
+        SELECT lo.application_no,
+               lo.loan_application_no,
+               lo.model,
+               sum(lo.principal) principal,
+               sum(lo.service_fee) serviceFee,
+               sum(lo.xxt_fee) xxtFee,
+               sum(lo.geex_fee) geexFee,
+               sum(lo.guarantee_fee) guaranteeFee,
+               sum(lo.other_fee) otherFee,
+               lo.cooperation_code,
+               lo.cooperation_name,
+               lo.`product_code`,
+               lo.`product_name`
+             FROM amp_capital.`loan_order` lo
+            WHERE lo.`payment_time` >= #{startTime}
+              AND lo.`payment_time` &lt; #{endTime}
+              and lo.is_delete = 0 and lo.is_cancel = 0
+         group by lo.cooperation_code, lo.model, lo.product_code
+    </select>
+
+
+</mapper>

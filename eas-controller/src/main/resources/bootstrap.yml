@@ -1,0 +1,120 @@
+spring:
+  application:
+    name: th-eas
+  profiles:
+    active: dev
+
+---
+spring:
+  profiles: dev
+  cloud:
+    nacos:
+      config:
+        enabled: false
+        server-addr: 10.10.116.26:8848
+        namespace: 8941c382-6c67-4de8-a6fe-6ae6b8d9003b
+        file-extension: yml
+      discovery:
+        server-addr: 10.10.116.26:8848
+        namespace: 8941c382-6c67-4de8-a6fe-6ae6b8d9003b
+
+---
+spring:
+  profiles: dev
+  cloud:
+    nacos:
+      config:
+        enabled: true
+        server-addr: 10.10.116.26:8848
+        namespace: 058b5547-694f-4414-aee1-90c7a6266469
+        file-extension: yml
+      discovery:
+        server-addr: 10.10.116.26:8848
+        namespace: 058b5547-694f-4414-aee1-90c7a6266469
+        enabled: true
+
+---
+spring:
+  profiles: test
+  cloud:
+    nacos:
+      config:
+        enabled: true
+        server-addr: 127.0.0.1:18848
+        namespace: 8941c382-6c67-4de8-a6fe-6ae6b8d9003b
+        file-extension: yml
+      discovery:
+        server-addr: 127.0.0.1:18848
+        namespace: 8941c382-6c67-4de8-a6fe-6ae6b8d9003b
+
+---
+spring:
+  profiles: sit
+  cloud:
+    nacos:
+      config:
+        enabled: true
+        server-addr: 127.0.0.1:8848
+        namespace: 8941c382-6c67-4de8-a6fe-6ae6b8d9003b
+        file-extension: yml
+      discovery:
+        server-addr: 127.0.0.1:8848
+        namespace: 8941c382-6c67-4de8-a6fe-6ae6b8d9003b
+---
+spring:
+  profiles: uat
+  cloud:
+    nacos:
+      config:
+        enabled: true
+        namespace: 8941c382-6c67-4de8-a6fe-6ae6b8d9003b
+        group: DEFAULT_GROUP
+        server-addr: 127.0.0.1:8848
+        file-extension: yml
+      discovery:
+        server-addr: 127.0.0.1:8848
+        namespace: 8941c382-6c67-4de8-a6fe-6ae6b8d9003b
+---
+spring:
+  profiles: fat
+  cloud:
+    nacos:
+      config:
+        enabled: true
+        namespace: 8941c382-6c67-4de8-a6fe-6ae6b8d9003b
+        group: DEFAULT_GROUP
+        server-addr: 127.0.0.1:18848
+        file-extension: yml
+      discovery:
+        server-addr: 127.0.0.1:18848
+        namespace: 8941c382-6c67-4de8-a6fe-6ae6b8d9003b
+
+---
+spring:
+  profiles: pre
+  cloud:
+    nacos:
+      config:
+        enabled: true
+        namespace: 8941c382-6c67-4de8-a6fe-6ae6b8d9003b
+        group: DEFAULT_GROUP
+        server-addr: 127.0.0.1:18848
+        file-extension: yml
+      discovery:
+        server-addr: 127.0.0.1:18848
+        namespace: 8941c382-6c67-4de8-a6fe-6ae6b8d9003b
+
+---
+spring:
+  profiles: prod
+  cloud:
+    nacos:
+      config:
+        enabled: true
+        namespace: 8941c382-6c67-4de8-a6fe-6ae6b8d9003b
+        group: DEFAULT_GROUP
+        server-addr: 172.17.128.135:8848
+        file-extension: yml
+      discovery:
+        server-addr: 172.17.128.135:8848
+        namespace: 8941c382-6c67-4de8-a6fe-6ae6b8d9003b
