@@ -16,8 +16,8 @@
 
     <!-- %d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger Line:%-3L - %msg%n-->
     <!-- 普通日志 -->
-    <property scope="context" name="appName" value="amp-saps"/>
-    <springProperty scope="context" name="appName"  source="spring.application.name" defaultValue="thctay-amp-saps"/>
+    <property scope="context" name="appName" value="th-eas"/>
+    <springProperty scope="context" name="appName"  source="spring.application.name" defaultValue="th-eas"/>
 
 
     <!-- 错误日志 -->

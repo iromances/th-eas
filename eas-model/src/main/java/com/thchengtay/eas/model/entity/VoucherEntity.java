@@ -46,13 +46,13 @@ public class VoucherEntity {
     //币种
     private String currencyNumber;
     //借贷方向
-    private String entryDC;
+    private String entrydc;
     //原币金额
-    private BigDecimal originalAmount;
+    private BigDecimal originalAmount = BigDecimal.ZERO;
     //借方金额
-    private BigDecimal debitAmount;
+    private BigDecimal debitAmount = BigDecimal.ZERO;
     //贷方金额
-    private BigDecimal creditAmount;
+    private BigDecimal creditAmount = BigDecimal.ZERO;
     //现金流量标记
     private String itemFlag;
     //对方科目分录号

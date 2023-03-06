@@ -112,22 +112,6 @@ xxl:
       logpath: xxljob
       logretentiondays: 30
 
-webhook: https://oapi.dingtalk.com/robot/send?access_token=f7a68cecc72f945d0fe7f9567eada462edd87441f3d3f252bb0f39919ba5db92
-#展期钉钉通知
-graceDayWebhook: https://oapi.dingtalk.com/robot/send?access_token=f7a68cecc72f945d0fe7f9567eada462edd87441f3d3f252bb0f39919ba5db92
-
-etcNoticeUrl: https://testgateway.lianrongbao.cn/thctay-service-crm/basic/bond/saps/changeResidueByAccount
-
-#部分结算科目优先级,007-逾期费,004-平台服务费。顺序在前,优先级越高
-pend:
-  bill:
-    subjectNos:
-      - P0007
-      - P0004
-      - P0005
-      - P0003
-      - P0001
-
 bill:
   upload:
     templateFile: D://hlj//
@@ -136,15 +120,6 @@ bill:
 html:
   to:
     pdf: D://wkhtmltopdf//bin//wkhtmltopdf.exe
-
-#通知测试模式
-notify:
-  enabled: true
-  test:
-    enabled: true
-    phone: 13262893751
-    email: yufanghua@thchengtay.com
-    wechat: ovPi103l-lL6Os25-7ZE0Zj-NfS8
 
 #jwt
 jwt:
@@ -167,27 +142,3 @@ pagePath:
 generateConfKey: consume.bill.reminder
 successConfKey: successful.repayment.reminder
 needRecalculateCustomerBillKey: Y
-
-partner:
-  bill:
-    pdf:
-      tmpl:
-        path: /mnt/server/saps/partnerBill/template
-      font:
-        path: C:/Windows/Fonts/simsun.ttc
-
-discountExpressWayIds: HEILONGJIANG,JIANGSU
-
-agreementAmount: 1000
-
-neCustomerCodes: "a"
-
-amp:
-  partner:
-    jiMiCooperationCode: HZF000118
-    jiKeCooperationCode: HZF000036
-    qmqbOnlinpayFeeRate: 0.0026
-    plusDays: 4
-    pushFlag: true
-    projectNos:
-      - XXT-PRJ-QMQB-A
