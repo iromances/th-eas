@@ -20,6 +20,12 @@ public class AssistMappingEntity {
 
     private String projectCode;
 
+    private String customerAssistType;
+
+    private String customerAssistCode;
+
+    private String customerAssistName;
+
     private String bankAccountAssistType;
 
     private String bankAccountAssistCode;

@@ -4,7 +4,6 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 /***
  *
@@ -18,15 +17,5 @@ import java.time.LocalDateTime;
 public class VoucherExecuteParam {
 
     private LocalDate executeDate;
-
-
-
-    /******************                 内部参数   **********************/
-    private LocalDateTime startTime;
-
-    private LocalDateTime endTime;
-
-    private String batchNo;
-
 
 }

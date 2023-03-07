@@ -40,4 +40,8 @@ public class AssistAccountEntity {
     private String asstActNumber2; //核算项目编码',
     private String asstActName2;    //核算项目名称',
 
+    private String asstActType3;   //核算项目类型',
+    private String asstActNumber3; //核算项目编码',
+    private String asstActName3;    //核算项目名称',
+
 }

@@ -3,9 +3,7 @@ package com.thchengtay.eas.service.impl;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.thchengtay.cache.util.RedisIdWorker;
 import com.thchengtay.eas.dao.VoucherMapper;
-import com.thchengtay.eas.model.dto.LoanOrderCriteria;
-import com.thchengtay.eas.model.dto.LoanOrderDto;
-import com.thchengtay.eas.model.dto.LoanPaymentDto;
+import com.thchengtay.eas.model.dto.*;
 import com.thchengtay.eas.model.dto.schedule.VoucherExecuteParam;
 import com.thchengtay.eas.model.entity.AssistAccountEntity;
 import com.thchengtay.eas.model.entity.AssistMappingEntity;
@@ -52,30 +50,348 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, VoucherEntity
 
     private static final String cretor = "黄丹红";
     private static final String companyNumber = "001";
-
     private static final String ENTRY_D = "借";
     private static final String ENTRY_C = "贷";
-
     private static final String VOUCHER_TYPE = "记账凭证";
 
+    private LocalDate today;
+    private LocalDateTime startTime;
+    private LocalDateTime endTime;
+    private String batchNo;
 
     @Transactional
     @Override
     public void importVoucher(VoucherExecuteParam voucherExecuteParam) {
 
         initExecuteParams(voucherExecuteParam);
+
+        //-----------------------------放款部分-------------------------------------------
         //放款单凭证
-        storageLoanOrderVoucher(voucherExecuteParam);
+        storageLoanOrderVoucher();
         //放款详单凭证&手续费凭证
-        storageRemitOrder(voucherExecuteParam);
+        storageRemitOrder();
+
+        //-----------------------------回款部分-------------------------------------------
+        //线下回款总额
+        storageOfflinePayment();
+
+        //线下回款明细
+        storageOnlineStatementDetail();
+
+        //线上回款
+        storageOnlinePayment();
 
     }
 
-    private void storageRemitOrder(VoucherExecuteParam voucherExecuteParam){
+    private void storageOnlinePayment(){
+
+
+
+
+
+
+    }
+
+    private void storageOnlineStatementDetail(){
+        LoanOrderCriteria criteria = new LoanOrderCriteria();
+        criteria.setBillDate(today);
+        List<StatementResourceDto> statementList = voucherMapper.listOfflineStatementDetail(criteria);
+
+        Map<String, List<StatementResourceDto>> groupStatementResources = statementList
+                .stream().collect(Collectors.groupingBy(StatementResourceDto -> StatementResourceDto.getCooperationCode() + "-" + StatementResourceDto.getStatementType().getDesc()  + "-" + StatementResourceDto.getSubjectNo()));
+
+        List<VoucherEntity> voucherList = new ArrayList<>();
+        List<AssistAccountEntity> assistAccountList = new ArrayList<>();
+
+        groupStatementResources.forEach((k,v)->{
+
+            StatementResourceDto firstStatementResource = v.get(0);
+
+            VoucherEntity statementVoucher = new VoucherEntity();
+            statementVoucher.setSeqNo(redisIdWorker.nextSecondId4(""));
+            statementVoucher.setBatchNo(batchNo);
+            statementVoucher.setCompanyNumber(companyNumber);
+            statementVoucher.setVoucherAbstract("收款消费金融-" + firstStatementResource.getCooperationName()+ "-" + firstStatementResource.getStatementType().getDesc()  + "-" + firstStatementResource.getSubjectName());
+            statementVoucher.setVoucherNumber("1");
+            statementVoucher.setPeriodNumber(today.format(DateTimeFormatter.ofPattern("yyyyMM")));
+            statementVoucher.setBookedDate(today.toString());
+            statementVoucher.setBizDate(today.plusDays(-1).toString());
+            statementVoucher.setVoucherType(VOUCHER_TYPE);
+            statementVoucher.setAccountNumber(EASSubjectEnum.S_1122020701.getValue());
+            statementVoucher.setAccountName(EASSubjectEnum.S_1122020701.getDesc());
+            statementVoucher.setCreator(cretor);
+            statementVoucher.setEntrydc(ENTRY_C);
+            for (StatementResourceDto statementResource : v) {
+                statementVoucher.setOriginalAmount(statementVoucher.getOriginalAmount().add(statementResource.getTotalAmount()));
+            }
+            statementVoucher.setCreditAmount(statementVoucher.getOriginalAmount());
+            voucherList.add(statementVoucher);
+
+
+            Map<String, List<StatementResourceDto>> groupByProductCode = v.stream().collect(Collectors.groupingBy(StatementResourceDto::getProductCode));
+            groupByProductCode.forEach((pk,pv)->{
+                AssistMappingEntity assistMapping = assistMappingService.getByProjectCode(pv.get(0).getProjectNo());
+                //辅助账
+                AssistAccountEntity assistAccountEntity = new AssistAccountEntity();
+                assistAccountEntity.setSeqNo(statementVoucher.getSeqNo());
+
+                assistAccountEntity.setAsstActType(assistMapping.getCustomerAssistType());
+                assistAccountEntity.setAsstActNumber(assistMapping.getCustomerAssistCode());
+                assistAccountEntity.setAsstActName(assistMapping.getCustomerAssistName());
+
+                assistAccountEntity.setAsstActType1("项目");
+                assistAccountEntity.setAsstActNumber1(pv.get(0).getProductCode());
+                assistAccountEntity.setAsstActName1(pv.get(0).getProductName());
+
+                assistAccountEntity.setAsstActType2(assistMapping.getOrgAssistType());
+                assistAccountEntity.setAsstActNumber2(assistMapping.getOrgAssistCode());
+                assistAccountEntity.setAsstActName2(assistMapping.getOrgAssistName());
+                assistAccountList.add(assistAccountEntity);
+            });
+
+
+            //------------------------------  收款消费金融-合作方名称-对账单名称-服务费  -------------------------------------
+            if (firstStatementResource.getSubjectNo().equals("P0003")){
+                Map<String, List<StatementResourceDto>> confirmGroupByProduct = v.stream().collect(Collectors.groupingBy(StatementResourceDto::getProductCode));
+                //待转销项税额
+                VoucherEntity serviceFeeNoVerify = new VoucherEntity();
+                serviceFeeNoVerify.setSeqNo(redisIdWorker.nextSecondId4(""));
+                serviceFeeNoVerify.setBatchNo(batchNo);
+                serviceFeeNoVerify.setCompanyNumber(companyNumber);
+                serviceFeeNoVerify.setVoucherAbstract("收款消费金融-" + firstStatementResource.getCooperationName() + "-" + firstStatementResource.getStatementType().getDesc() + "-服务费");
+                serviceFeeNoVerify.setVoucherNumber("1");
+                serviceFeeNoVerify.setPeriodNumber(today.format(DateTimeFormatter.ofPattern("yyyyMM")));
+                serviceFeeNoVerify.setBookedDate(today.toString());
+                serviceFeeNoVerify.setBizDate(today.plusDays(-1).toString());
+                serviceFeeNoVerify.setVoucherType(VOUCHER_TYPE);
+                serviceFeeNoVerify.setAccountNumber(EASSubjectEnum.S_22211603.getValue());
+                serviceFeeNoVerify.setAccountName(EASSubjectEnum.S_22211603.getDesc());
+                serviceFeeNoVerify.setCreator(cretor);
+                serviceFeeNoVerify.setEntrydc(ENTRY_D);
+                BigDecimal multiply = firstStatementResource.getTotalAmount().divide(new BigDecimal("1.06"), 2).multiply(new BigDecimal("0.06"));
+                serviceFeeNoVerify.setOriginalAmount(multiply.setScale(2, RoundingMode.HALF_UP));
+                serviceFeeNoVerify.setDebitAmount(serviceFeeNoVerify.getOriginalAmount());
+                confirmGroupByProduct.forEach((cpk, cpv)->{
+                    //辅助账
+                    AssistAccountEntity assistAccountEntity = new AssistAccountEntity();
+                    assistAccountEntity.setSeqNo(serviceFeeNoVerify.getSeqNo());
+                    assistAccountEntity.setAsstActType("项目");
+                    assistAccountEntity.setAsstActNumber(cpv.get(0).getProductCode());
+                    assistAccountEntity.setAsstActName(cpv.get(0).getProductName());
+                    assistAccountList.add(assistAccountEntity);
+                });
+                voucherList.add(serviceFeeNoVerify);
+
+                VoucherEntity serviceFeeNoVerify2 = new VoucherEntity();
+                serviceFeeNoVerify2.setSeqNo(redisIdWorker.nextSecondId4(""));
+                serviceFeeNoVerify2.setBatchNo(batchNo);
+                serviceFeeNoVerify2.setCompanyNumber(companyNumber);
+                serviceFeeNoVerify2.setVoucherAbstract("收款消费金融-" + firstStatementResource.getCooperationName() + "-" + firstStatementResource.getStatementType().getDesc() + "-服务费");
+                serviceFeeNoVerify2.setVoucherNumber("1");
+                serviceFeeNoVerify2.setPeriodNumber(today.format(DateTimeFormatter.ofPattern("yyyyMM")));
+                serviceFeeNoVerify2.setBookedDate(today.toString());
+                serviceFeeNoVerify2.setBizDate(today.plusDays(-1).toString());
+                serviceFeeNoVerify2.setVoucherType(VOUCHER_TYPE);
+                serviceFeeNoVerify2.setAccountNumber(EASSubjectEnum.S_2221010214.getValue());
+                serviceFeeNoVerify2.setAccountName(EASSubjectEnum.S_2221010214.getDesc());
+                serviceFeeNoVerify2.setCreator(cretor);
+                serviceFeeNoVerify2.setEntrydc(ENTRY_C);
+                serviceFeeNoVerify2.setOriginalAmount(serviceFeeNoVerify.getOriginalAmount());
+                serviceFeeNoVerify2.setCreditAmount(serviceFeeNoVerify.getOriginalAmount());
+                confirmGroupByProduct.forEach((cpk, cpv)->{
+                    //辅助账
+                    AssistAccountEntity assistAccountEntity = new AssistAccountEntity();
+                    assistAccountEntity.setSeqNo(serviceFeeNoVerify2.getSeqNo());
+                    assistAccountEntity.setAsstActType("项目");
+                    assistAccountEntity.setAsstActNumber(cpv.get(0).getProductCode());
+                    assistAccountEntity.setAsstActName(cpv.get(0).getProductName());
+                    assistAccountList.add(assistAccountEntity);
+                });
+                voucherList.add(serviceFeeNoVerify2);
+
+
+
+
+                //-------------------------------------收入确认部分-------------------------------------------------------
+                //直接表内计算，取资方服务费
+                VoucherEntity serviceFeeConfirm_1122020702 = new VoucherEntity();
+                serviceFeeConfirm_1122020702.setSeqNo(redisIdWorker.nextSecondId4(""));
+                serviceFeeConfirm_1122020702.setBatchNo(batchNo);
+                serviceFeeConfirm_1122020702.setCompanyNumber(companyNumber);
+                serviceFeeConfirm_1122020702.setVoucherAbstract("收款消费金融-" + firstStatementResource.getCooperationName() + "-" + firstStatementResource.getStatementType().getDesc() + "-服务费-收入确认");
+                serviceFeeConfirm_1122020702.setVoucherNumber("1");
+                serviceFeeConfirm_1122020702.setPeriodNumber(today.format(DateTimeFormatter.ofPattern("yyyyMM")));
+                serviceFeeConfirm_1122020702.setBookedDate(today.toString());
+                serviceFeeConfirm_1122020702.setBizDate(today.plusDays(-1).toString());
+                serviceFeeConfirm_1122020702.setVoucherType(VOUCHER_TYPE);
+                serviceFeeConfirm_1122020702.setAccountNumber(EASSubjectEnum.S_1122020702.getValue());
+                serviceFeeConfirm_1122020702.setAccountName(EASSubjectEnum.S_1122020702.getDesc());
+                serviceFeeConfirm_1122020702.setCreator(cretor);
+                serviceFeeConfirm_1122020702.setEntrydc(ENTRY_D);
+                serviceFeeConfirm_1122020702.setOriginalAmount(statementVoucher.getOriginalAmount());
+                serviceFeeConfirm_1122020702.setDebitAmount(serviceFeeConfirm_1122020702.getOriginalAmount());
+                voucherList.add(serviceFeeConfirm_1122020702);
+
+                confirmGroupByProduct.forEach((cpk, cpv)->{
+                    AssistMappingEntity assistMapping = assistMappingService.getByProjectCode(cpv.get(0).getProjectNo());
+                    //辅助账
+                    AssistAccountEntity assistAccountEntity = new AssistAccountEntity();
+                    assistAccountEntity.setSeqNo(serviceFeeConfirm_1122020702.getSeqNo());
+
+                    assistAccountEntity.setAsstActType(assistMapping.getCustomerAssistType());
+                    assistAccountEntity.setAsstActNumber(assistMapping.getCustomerAssistCode());
+                    assistAccountEntity.setAsstActName(assistMapping.getCustomerAssistName());
+
+                    assistAccountEntity.setAsstActType1("项目");
+                    assistAccountEntity.setAsstActNumber1(cpv.get(0).getProductCode());
+                    assistAccountEntity.setAsstActName1(cpv.get(0).getProductName());
+
+                    assistAccountEntity.setAsstActType2(assistMapping.getOrgAssistType());
+                    assistAccountEntity.setAsstActNumber2(assistMapping.getOrgAssistCode());
+                    assistAccountEntity.setAsstActName2(assistMapping.getOrgAssistName());
+                    assistAccountList.add(assistAccountEntity);
+                });
+
+                //应还服务费（资金方）-待转销项税额
+                VoucherEntity serviceFeeConfirm_60010209 = new VoucherEntity();
+                serviceFeeConfirm_60010209.setSeqNo(redisIdWorker.nextSecondId4(""));
+                serviceFeeConfirm_60010209.setBatchNo(batchNo);
+                serviceFeeConfirm_60010209.setCompanyNumber(companyNumber);
+                serviceFeeConfirm_60010209.setVoucherAbstract("收款消费金融-" + firstStatementResource.getCooperationName() + "-" + firstStatementResource.getStatementType().getDesc() + "-服务费-收入确认");
+                serviceFeeConfirm_60010209.setVoucherNumber("1");
+                serviceFeeConfirm_60010209.setPeriodNumber(today.format(DateTimeFormatter.ofPattern("yyyyMM")));
+                serviceFeeConfirm_60010209.setBookedDate(today.toString());
+                serviceFeeConfirm_60010209.setBizDate(today.plusDays(-1).toString());
+                serviceFeeConfirm_60010209.setVoucherType(VOUCHER_TYPE);
+                serviceFeeConfirm_60010209.setAccountNumber(EASSubjectEnum.S_60010209.getValue());
+                serviceFeeConfirm_60010209.setAccountName(EASSubjectEnum.S_60010209.getDesc());
+                serviceFeeConfirm_60010209.setCreator(cretor);
+                serviceFeeConfirm_60010209.setEntrydc(ENTRY_C);
+                serviceFeeConfirm_60010209.setOriginalAmount(serviceFeeConfirm_1122020702.getOriginalAmount().subtract(serviceFeeNoVerify.getOriginalAmount()));
+                serviceFeeConfirm_60010209.setCreditAmount(serviceFeeConfirm_60010209.getOriginalAmount());
+                voucherList.add(serviceFeeConfirm_60010209);
+                confirmGroupByProduct.forEach((cpk, cpv)->{
+                    AssistMappingEntity assistMapping = assistMappingService.getByProjectCode(cpv.get(0).getProjectNo());
+                    //辅助账
+                    AssistAccountEntity assistAccountEntity = new AssistAccountEntity();
+                    assistAccountEntity.setSeqNo(serviceFeeConfirm_60010209.getSeqNo());
+
+                    assistAccountEntity.setAsstActType(assistMapping.getOrgAssistType());
+                    assistAccountEntity.setAsstActNumber(assistMapping.getOrgAssistCode());
+                    assistAccountEntity.setAsstActName(assistMapping.getOrgAssistName());
+
+                    assistAccountEntity.setAsstActType1("职员");
+                    assistAccountEntity.setAsstActNumber1("benbu");
+                    assistAccountEntity.setAsstActName1("通汇天津本部");
+
+                    assistAccountEntity.setAsstActType2("项目");
+                    assistAccountEntity.setAsstActNumber2(cpv.get(0).getProductCode());
+                    assistAccountEntity.setAsstActName2(cpv.get(0).getProductName());
+
+                    assistAccountEntity.setAsstActType3("客户");
+                    assistAccountEntity.setAsstActNumber3(cpv.get(0).getCooperationCode());
+                    assistAccountEntity.setAsstActName3(cpv.get(0).getCooperationName());
+                    assistAccountList.add(assistAccountEntity);
+                });
+
+                //取表内待转销项税额
+                VoucherEntity serviceFeeConfirm_22211603 = new VoucherEntity();
+                serviceFeeConfirm_22211603.setSeqNo(redisIdWorker.nextSecondId4(""));
+                serviceFeeConfirm_22211603.setBatchNo(batchNo);
+                serviceFeeConfirm_22211603.setCompanyNumber(companyNumber);
+                serviceFeeConfirm_22211603.setVoucherAbstract("收款消费金融-" + firstStatementResource.getCooperationName() + "-" + firstStatementResource.getStatementType().getDesc() + "-服务费-收入确认");
+                serviceFeeConfirm_22211603.setVoucherNumber("1");
+                serviceFeeConfirm_22211603.setPeriodNumber(today.format(DateTimeFormatter.ofPattern("yyyyMM")));
+                serviceFeeConfirm_22211603.setBookedDate(today.toString());
+                serviceFeeConfirm_22211603.setBizDate(today.plusDays(-1).toString());
+                serviceFeeConfirm_22211603.setVoucherType(VOUCHER_TYPE);
+                serviceFeeConfirm_22211603.setAccountNumber(EASSubjectEnum.S_22211603.getValue());
+                serviceFeeConfirm_22211603.setAccountName(EASSubjectEnum.S_22211603.getDesc());
+                serviceFeeConfirm_22211603.setCreator(cretor);
+                serviceFeeConfirm_22211603.setEntrydc(ENTRY_C);
+                serviceFeeConfirm_22211603.setOriginalAmount(serviceFeeNoVerify.getOriginalAmount());
+                serviceFeeConfirm_22211603.setCreditAmount(serviceFeeConfirm_22211603.getOriginalAmount());
+                voucherList.add(serviceFeeConfirm_22211603);
+
+                confirmGroupByProduct.forEach((cpk, cpv)->{
+                    AssistMappingEntity assistMapping = assistMappingService.getByProjectCode(cpv.get(0).getProjectNo());
+                    //辅助账
+                    AssistAccountEntity assistAccountEntity = new AssistAccountEntity();
+                    assistAccountEntity.setSeqNo(serviceFeeConfirm_22211603.getSeqNo());
+
+                    assistAccountEntity.setAsstActType("项目");
+                    assistAccountEntity.setAsstActNumber(cpv.get(0).getProductCode());
+                    assistAccountEntity.setAsstActName(cpv.get(0).getProductName());
+
+                    assistAccountList.add(assistAccountEntity);
+                });
+            }
+        });
+    }
+
+
+    private void storageOfflinePayment(){
+        LoanOrderCriteria criteria = new LoanOrderCriteria();
+        criteria.setBillDate(today);
+        List<StatementDto> statementList = voucherMapper.listOfflineStatement(criteria);
+
+        Map<String, List<StatementDto>> groupByCooperation = statementList
+                .stream().collect(Collectors.groupingBy(statementDto -> statementDto.getCooperationCode() + "-" + statementDto.getStatementType().getDesc()));
+
+        List<VoucherEntity> voucherList = new ArrayList<>();
+        List<AssistAccountEntity> assistAccountList = new ArrayList<>();
+
+        groupByCooperation.forEach((k,v)->{
+
+            StatementDto firstStatement = v.get(0);
+            VoucherEntity statementVoucher = new VoucherEntity();
+            statementVoucher.setSeqNo(redisIdWorker.nextSecondId4(""));
+            statementVoucher.setBatchNo(batchNo);
+            statementVoucher.setCompanyNumber(companyNumber);
+            statementVoucher.setVoucherAbstract("收款消费金融-" + firstStatement.getCooperationName()+ "-" + firstStatement.getStatementType().getDesc()  + "-" + today);
+            statementVoucher.setVoucherNumber("1");
+            statementVoucher.setPeriodNumber(today.format(DateTimeFormatter.ofPattern("yyyyMM")));
+            statementVoucher.setBookedDate(today.toString());
+            statementVoucher.setBizDate(today.plusDays(-1).toString());
+            statementVoucher.setVoucherType(VOUCHER_TYPE);
+            statementVoucher.setAccountNumber(EASSubjectEnum.S_100201.getValue());
+            statementVoucher.setAccountName(EASSubjectEnum.S_100201.getDesc());
+            statementVoucher.setCreator(cretor);
+            statementVoucher.setEntrydc(ENTRY_D);
+            for (StatementDto statementDto : v) {
+                statementVoucher.setOriginalAmount(statementVoucher.getOriginalAmount().add(statementDto.getTotalAmount()));
+            }
+            statementVoucher.setDebitAmount(statementVoucher.getOriginalAmount());
+            voucherList.add(statementVoucher);
+
+
+            Map<String, List<StatementDto>> groupByProjectNo = v.stream().collect(Collectors.groupingBy(StatementDto::getProjectNo));
+            groupByProjectNo.forEach((pk,pv)->{
+
+                AssistMappingEntity assistMapping = assistMappingService.getByProjectCode(pk);
+
+                //辅助账
+                AssistAccountEntity assistAccountEntity = new AssistAccountEntity();
+                assistAccountEntity.setSeqNo(statementVoucher.getSeqNo());
+
+                assistAccountEntity.setAsstActType(assistMapping.getBankAccountAssistType());
+                assistAccountEntity.setAsstActNumber(assistMapping.getBankAccountAssistCode());
+                assistAccountEntity.setAsstActName(assistMapping.getBankAccountAssistName());
+
+                assistAccountEntity.setAsstActType1(assistMapping.getFinancialOrgAssistType());
+                assistAccountEntity.setAsstActNumber1(assistMapping.getFinancialOrgAssistCode());
+                assistAccountEntity.setAsstActName1(assistMapping.getFinancialOrgAssistName());
+                assistAccountList.add(assistAccountEntity);
+            });
+        });
+    }
+
+
+    private void storageRemitOrder(){
 
         LoanOrderCriteria criteria = new LoanOrderCriteria();
-        criteria.setStartTime(voucherExecuteParam.getStartTime());
-        criteria.setEndTime(voucherExecuteParam.getEndTime());
+        criteria.setStartTime(startTime);
+        criteria.setEndTime(endTime);
         List<LoanPaymentDto> loanPaymentList = voucherMapper.listLoanPayment(criteria);
 
         Map<String, List<LoanPaymentDto>> groupByCooperationCode = loanPaymentList.stream().collect(Collectors.groupingBy(LoanPaymentDto::getCooperationCode));
@@ -85,10 +401,10 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, VoucherEntity
         groupByCooperationCode.forEach((k,v)->{
 
             //放款手续费凭证
-            remitOrderFeeVoucher(voucherExecuteParam, v, assistAccountList, voucherList);
+            remitOrderFeeVoucher(v, assistAccountList, voucherList);
 
             //商户&担保方放款订单凭证
-            remitOrderDetailVoucher(voucherExecuteParam, v, assistAccountList, voucherList);
+            remitOrderDetailVoucher(v, assistAccountList, voucherList);
 
         });
 
@@ -100,18 +416,14 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, VoucherEntity
 
     /***
      *  放款至商户&担保方凭证
-     * @param voucherExecuteParam
      * @param loanPaymentList
      * @param assistAccountList
      * @param voucherList
      */
-    private void remitOrderDetailVoucher(VoucherExecuteParam voucherExecuteParam,
-                                      List<LoanPaymentDto> loanPaymentList,
+    private void remitOrderDetailVoucher(List<LoanPaymentDto> loanPaymentList,
                                       List<AssistAccountEntity> assistAccountList,
                                       List<VoucherEntity> voucherList){
 
-        String batchNo = voucherExecuteParam.getBatchNo();
-        LocalDate today = voucherExecuteParam.getExecuteDate();
         LoanPaymentDto loanPayment = loanPaymentList.get(0);
 
         //放款详单拆分担保方  &  商户
@@ -213,17 +525,13 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, VoucherEntity
 
     /***
      *  放款手续费凭证
-     * @param voucherExecuteParam
      * @param loanPaymentList
      * @param assistAccountList
      * @param voucherList
      */
-    private void remitOrderFeeVoucher(VoucherExecuteParam voucherExecuteParam,
-                                      List<LoanPaymentDto> loanPaymentList,
+    private void remitOrderFeeVoucher(List<LoanPaymentDto> loanPaymentList,
                                       List<AssistAccountEntity> assistAccountList,
                                       List<VoucherEntity> voucherList){
-        String batchNo = voucherExecuteParam.getBatchNo();
-        LocalDate today = voucherExecuteParam.getExecuteDate();
         LoanPaymentDto loanPayment = loanPaymentList.get(0);
 
         VoucherEntity feevoucher = new VoucherEntity();
@@ -296,12 +604,7 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, VoucherEntity
     }
 
 
-    private void storageLoanOrderVoucher(VoucherExecuteParam voucherExecuteParam){
-        LocalDateTime startTime = voucherExecuteParam.getStartTime();
-        LocalDateTime endTime = voucherExecuteParam.getEndTime();
-        String batchNo = voucherExecuteParam.getBatchNo();
-        LocalDate today = voucherExecuteParam.getExecuteDate();
-
+    private void storageLoanOrderVoucher(){
         LoanOrderCriteria criteria = new LoanOrderCriteria();
         criteria.setStartTime(startTime);
         criteria.setEndTime(endTime);
@@ -328,7 +631,7 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, VoucherEntity
             }
             LoanOrderDto loanOrder = values.get(0);
 
-            txLoanOrderVoucher(voucherExecuteParam, txList, voucherList, assistAccountList);
+            txLoanOrderVoucher(txList, voucherList, assistAccountList);
 
             if (CollectionUtils.isNotEmpty(fxList)){
                 VoucherEntity fxvoucherEntity = new VoucherEntity();
@@ -385,13 +688,11 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, VoucherEntity
      *  2.资金方服务费凭证
      *  3.应交税费-待转销项税额-消费金融
      *  4.应交税费-应交增值税-内贸及保理业务-销项税额（消费金融）
-     * @param voucherExecuteParam
      * @param txList
      * @param assistAccountList
      * @param voucherList
      */
-    private void txLoanOrderVoucher(VoucherExecuteParam voucherExecuteParam,
-                                    List<LoanOrderDto> txList,
+    private void txLoanOrderVoucher(List<LoanOrderDto> txList,
                                     List<VoucherEntity> voucherList,
                                     List<AssistAccountEntity> assistAccountList){
 
@@ -399,8 +700,6 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, VoucherEntity
             return;
         }
 
-        String batchNo = voucherExecuteParam.getBatchNo();
-        LocalDate today = voucherExecuteParam.getExecuteDate();
         LoanOrderDto loanOrder = txList.get(0);
 
         VoucherEntity txPrincipalVoucherEntity = new VoucherEntity();
@@ -539,17 +838,13 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, VoucherEntity
         if (voucherExecuteParam.getExecuteDate() == null){
             voucherExecuteParam.setExecuteDate(LocalDate.now());
         }
-        LocalDate today = voucherExecuteParam.getExecuteDate();
+        today = voucherExecuteParam.getExecuteDate();
        /* LocalDateTime startTime = LocalDateTime.of(today, LocalTime.of(0,0,0,0));
         LocalDateTime endTime = startTime.plusDays(1);*/
-        LocalDateTime startTime = LocalDateTime.of(2023,3,6,0,0,0,0);
-        LocalDateTime endTime = LocalDateTime.of(2023,3,7,0,0,0,0);
+        startTime = LocalDateTime.of(2023,3,6,0,0,0,0);
+        endTime = LocalDateTime.of(2023,3,7,0,0,0,0);
         //业务系统---放款订单  合作方、产品、付息方式分组
-        String batchNo = redisIdWorker.nextDayId4("");
-
-        voucherExecuteParam.setStartTime(startTime);
-        voucherExecuteParam.setEndTime(endTime);
-        voucherExecuteParam.setBatchNo(batchNo);
+        batchNo = redisIdWorker.nextDayId4("");
     }
 
 

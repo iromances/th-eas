@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /***
@@ -16,6 +17,9 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 public class LoanOrderCriteria {
+
+    //对账单出账日条件
+    private LocalDate billDate;
 
     private LocalDateTime startTime;
 

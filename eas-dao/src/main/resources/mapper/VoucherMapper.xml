@@ -45,5 +45,35 @@
     </select>
 
 
+    <select id="listOfflineStatement" parameterType="LoanOrderCriteria" resultType="StatementDto">
+        SELECT * FROM amp_saps.`statement` t
+        WHERE t.`is_cancel` = 0 AND t.`is_delete` = 0
+          AND t.`bill_date` = #{billDate}
+          AND t.`statement_type` IN (1000, 2000, 3000, 4000)
+        group by t.cooperation_code, t.statement_type, t.project_no
+    </select>
+
+    <select id="listOfflineStatementDetail" parameterType="LoanOrderCriteria" resultType="StatementResourceDto">
+        SELECT
+            s.`project_no`,
+            rp.`project_name`,
+            s.`cooperation_code`,
+            s.`cooperation_name`,
+            s.`statement_type`,
+            SUM(sr.`fee_amount`) totalAmount,
+            sr.`subject_no`,
+            sr.`subject_name`,
+            rp.`product_code`
+        FROM amp_saps.`statement` s JOIN amp_saps.`statement_resource` sr ON s.`statement_no` = sr.`statement_no`
+                                    JOIN amp_saps.`repayment_plan` rp ON sr.`bill_no` = rp.`bill_no`
+        WHERE sr.`subject_no` IN ('P0001','P0003')
+        AND s.`statement_type` IN (1000, 2000, 3000, 4000)
+            #AND s.`bill_date` = #{billDate}
+        AND s.`is_cancel` = 0 AND s.`is_delete` = 0
+        AND rp.`is_delete` = 0 AND rp.`is_cancel` = 0
+        GROUP BY s.`cooperation_code`,s.`statement_type`,sr.`subject_no`,rp.`product_code`
+    </select>
+
+
 
 </mapper>
