@@ -14,14 +14,36 @@
                sum(lo.other_fee) otherFee,
                lo.cooperation_code,
                lo.cooperation_name,
-               lo.`product_code`,
-               lo.`product_name`
-             FROM amp_capital.`loan_order` lo
-            WHERE lo.`payment_time` >= #{startTime}
-              AND lo.`payment_time` &lt; #{endTime}
-              and lo.is_delete = 0 and lo.is_cancel = 0
-         group by lo.cooperation_code, lo.model, lo.product_code
+               lo.`project_code`,
+               ap.`name` projectName,
+               lo.product_code,
+               lo.product_name
+        FROM amp_capital.`loan_order` lo join amp_order.amp_project ap on lo.project_code = ap.no
+        WHERE lo.`payment_time` >= #{startTime}
+          AND lo.`payment_time` &lt; #{endTime}
+          and lo.is_delete = 0 and lo.is_cancel = 0
+        group by lo.cooperation_code, lo.model, lo.product_code
     </select>
+
+
+    <select id="listLoanPayment" parameterType="LoanOrderCriteria" resultType="LoanPaymentDto">
+        SELECT
+            lo.`cooperation_code`,
+            lo.`cooperation_name`,
+            lo.`project_code`,
+            SUM(lp.`payment_amt`) paymentAmount,
+            SUM(lp.`realpayment_amt`) realPaymentAmount,
+            lp.`acc_type`,
+            ob.`channel_id` channel,
+            sum(lp.`realpayment_amt` - lp.`payment_amt`) fee
+        FROM amp_capital.loan_payment lp JOIN amp_capital.`loan_order` lo ON lp.`loan_application_no` = lo.`loan_application_no`
+        JOIN amp_payment.`order_business` ob ON lp.`pay_apply_no` = ob.`biz_serial_no`
+        WHERE lo.`model` != 2 and lp.is_delete = 0 and lo.is_cancel = 0
+        AND lo.`payment_time` >= #{startTime}
+        AND lo.`payment_time` &lt; #{endTime}
+        GROUP BY lo.cooperation_code, lp.`acc_type`, ob.`channel_id`
+    </select>
+
 
 
 </mapper>

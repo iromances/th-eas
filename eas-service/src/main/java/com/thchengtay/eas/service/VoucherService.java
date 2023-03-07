@@ -15,7 +15,4 @@ public interface VoucherService extends IService<VoucherEntity> {
 
     void importVoucher(VoucherExecuteParam voucherExecute);
 
-
-    void push();
-
 }

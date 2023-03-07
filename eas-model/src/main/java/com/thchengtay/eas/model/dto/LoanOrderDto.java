@@ -41,6 +41,10 @@ public class LoanOrderDto {
 
     private String cooperationName;
 
+    private String projectCode;
+
+    private String projectName;
+
     private String productCode;
 
     private String productName;

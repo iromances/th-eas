@@ -1,7 +1,7 @@
 package com.thchengtay.eas.dao;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.thchengtay.eas.model.entity.AssisMappingEntity;
+import com.thchengtay.eas.model.entity.AssistMappingEntity;
 
 /***
  *
@@ -10,7 +10,7 @@ import com.thchengtay.eas.model.entity.AssisMappingEntity;
  * @since 2023/3/6
  *
  */
-public interface AssisMappingMapper extends BaseMapper<AssisMappingEntity> {
+public interface AssistMappingMapper extends BaseMapper<AssistMappingEntity> {
 
 
 }
