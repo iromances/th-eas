@@ -3,7 +3,6 @@ package com.thchengtay.eas.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.sun.javaws.CacheUtil;
 import com.thchengtay.eas.common.CacheUtils;
 import com.thchengtay.eas.dao.AssistMappingMapper;
 import com.thchengtay.eas.model.entity.AssistMappingEntity;
