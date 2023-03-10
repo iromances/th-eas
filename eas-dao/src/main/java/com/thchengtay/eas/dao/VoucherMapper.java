@@ -26,4 +26,11 @@ public interface VoucherMapper extends BaseMapper<VoucherEntity> {
     List<StatementResourceDto> listOfflineStatementDetail(LoanOrderCriteria criteria);
 
 
+    List<RepaymentPlanDto> listOnlinePayment(LoanOrderCriteria criteria);
+
+    List<RepaymentPlanPayDetailDto> listOnlinePayDetail(LoanOrderCriteria criteria);
+
+    List<RepaymentPlanPaySubjectDetailDto> listOnlinePaySubjectDetail(LoanOrderCriteria criteria);
+
+
 }

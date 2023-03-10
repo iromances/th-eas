@@ -75,5 +75,40 @@
     </select>
 
 
+    <select id="listOnlinePayment" parameterType="LoanOrderCriteria" resultType="RepaymentPlanDto">
+        SELECT rp.`cooperation_code`,rp.`cooperation_name`,rp.`product_code`,rp.`product_name`,rp.`project_no`,bfd.`subject_no`,bfd.`subject_name`,
+        SUM(bfd.`total_amount`) totalAmount
+        FROM amp_saps.`repayment_plan` rp JOIN amp_saps.`bill_fee_detail` bfd ON rp.`bill_no` = bfd.`bill_no`
+        WHERE rp.`payment_mode` = 10 AND rp.`is_cancel` = 0 AND rp.`is_delete` = 0
+        AND bfd.`is_cancel` = 0 AND bfd.`is_delete` = 0
+        AND rp.`settlement_time` >=  #{startTime} AND rp.`settlement_time` &lt; #{endTime}
+        GROUP BY rp.`product_code`,bfd.`subject_no`
+    </select>
+
+
+    <select id="listOnlinePaySubjectDetail" parameterType="LoanOrderCriteria" resultType="RepaymentPlanPayDetailDto">
+        SELECT rp.`product_code`,rp.`project_name`,rp.`project_no`,rp.`project_name`,SUM(rppd.`pay_amount`) totalAmount
+        FROM amp_saps.`repayment_plan_pay_detail` rppd
+        JOIN amp_saps.`repayment_plan_pay_subject_detail` rppsd ON rppd.`serial_no` = rppsd.`pay_detail_serial_no`
+        JOIN amp_saps.`repayment_plan` rp ON rppd.`bill_no` = rp.`bill_no`
+        WHERE rppd.`is_cancel` = 0 AND rppd.`is_delete` = 0 AND rppsd.`is_cancel` = 0 AND rppsd.`is_delete` = 0
+        AND rp.`is_cancel` = 0 AND rp.`is_delete` = 0
+        AND rppd.`settlement_time` >= #{startTime} AND rppd.`settlement_time` &lt; #{endTime}
+        AND rppd.`payment_mode` = 10
+        AND bfd.subject_no not in ('P0001','P0003')
+        GROUP BY rp.`product_code`
+    </select>
+
+    <select id="listOnlinePayDetail" parameterType="LoanOrderCriteria" resultType="RepaymentPlanPaySubjectDetailDto">
+        SELECT rp.`product_code`,rp.`project_name`,rp.`project_no`,rp.`project_name`,SUM(rppd.`pay_amount`) totalAmount,SUM(rppd.`fee_amount`) feeAmount
+        FROM amp_saps.`repayment_plan_pay_detail` rppd
+        JOIN amp_saps.`repayment_plan` rp ON rppd.`bill_no` = rp.`bill_no`
+        WHERE rppd.`is_cancel` = 0 AND rppd.`is_delete` = 0
+        AND rp.`is_cancel` = 0 AND rp.`is_delete` = 0
+        AND rppd.`settlement_time` >= '' AND rppd.`settlement_time` < ''
+        AND rppd.`payment_mode` = 10
+        GROUP BY rp.`product_code`
+    </select>
+
 
 </mapper>
