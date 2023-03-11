@@ -1,10 +1,14 @@
 package com.thchengtay.eas.service.impl;
 
+import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.thchengtay.cache.util.RedisIdWorker;
 import com.thchengtay.eas.dao.VoucherMapper;
 import com.thchengtay.eas.model.dto.*;
 import com.thchengtay.eas.model.dto.schedule.VoucherExecuteParam;
+import com.thchengtay.eas.model.eas.WSContext;
+import com.thchengtay.eas.model.eas.WSWSRtnInfo;
+import com.thchengtay.eas.model.eas.WSWSVoucher;
 import com.thchengtay.eas.model.entity.AssistAccountEntity;
 import com.thchengtay.eas.model.entity.AssistMappingEntity;
 import com.thchengtay.eas.model.entity.VoucherEntity;
@@ -13,13 +17,19 @@ import com.thchengtay.eas.service.AssistAccountService;
 import com.thchengtay.eas.service.AssistMappingService;
 import com.thchengtay.eas.service.VoucherService;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.axis.client.Call;
+import org.apache.axis.message.SOAPHeaderElement;
 import org.apache.commons.collections.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.xml.namespace.QName;
+import javax.xml.rpc.ParameterMode;
+import javax.xml.rpc.ServiceException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.net.URL;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -84,6 +94,123 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, VoucherEntity
 
         //线上回款---支付部分
         storageOnlinePayment();
+    }
+
+
+    protected static final String IP = "10.10.116.14";
+    protected static final String PORT ="6888";
+    protected static final String DC ="chengtai";
+    protected static final String USERNAME ="robot";
+    protected static final String PASSWORD ="ct123456";
+    protected static final String LANG ="L2";
+
+    @Transactional
+    @Override
+    public void push(JSONObject jsonObject) throws Exception {
+
+        org.apache.axis.client.Service service = new org.apache.axis.client.Service();
+        Call call = (Call) service.createCall();
+        call.setOperationName("login");
+        call.setTargetEndpointAddress("http://"+IP+":"+PORT+"/ormrpc/services/EASLogin");
+        call.setReturnType(new QName("urn:client", "WSContext"));
+        call.setReturnClass(WSContext.class);
+        call.setReturnQName(new QName("loginReturn"));
+        call.setTimeout(4 * 68 * 60 * 1080);
+        call.setMaintainSession(true);
+        //登陆接口参数
+        WSContext ctx = (WSContext) call.invoke(new Object[]{USERNAME, PASSWORD, "eas", DC, LANG, 0});
+        if(ctx.getSessionId() == null){
+            System.out.println("登录失败!");
+            return;
+        }
+
+        System.out.println("登录成功" + ctx.getSessionId());
+
+        call.clearOperation();
+        call.setOperationName("importVoucher");
+        call.setTargetEndpointAddress("http://"+IP+":"+PORT+"/ormrpc/services/WSWSVoucher");
+
+        call.addParameter("voucherCols", new QName("http://ww.w3.org/2001/XMLSchema","string"), WSWSVoucher[].class, ParameterMode.IN);
+        call.addParameter("isTempSave", new QName("http://ww.w3.org/2001/XMLSchema","string"),boolean.class, ParameterMode.IN);
+        call.addParameter("isVerify", new QName("http://ww.w3.org/2001/XMLSchema","string"), boolean.class, ParameterMode.IN);
+        call.addParameter("hasCashflow", new QName("http://ww.w3.org/2001/XMLSchema","string"), boolean.class, ParameterMode.IN);
+
+        //call.setReturnClass(String.class);
+        //call.setReturnQName(new QName("nImportVoucherReturn"));
+
+        //call.setReturnClass(Object.class);
+        call.setReturnClass(WSWSRtnInfo[].class);
+
+        call.setReturnQName(new QName("importVoucherReturn"));
+
+        call.setTimeout(4 * 60 * 60 * 1000);
+        call.setMaintainSession(true); //设智答录返回的session在soap头
+
+        //http://webservice.app.gl.fi.eas.kingdee.com
+        //http://login.webservice.bos.kingdee.com
+        SOAPHeaderElement header = new SOAPHeaderElement("http://webservice.app.gl.fi.eas.kingdee.com", "sessionId", ctx.getSessionId());
+
+        call.addHeader(header);
+
+        WSWSVoucher[] rows = getDatas();
+
+
+        WSWSRtnInfo[] invoke = (WSWSRtnInfo[]) call.invoke(new Object[]{rows, true, true, false});
+        //Object ob = call.invoke(new Object[]{rows, false, false, false});
+    }
+
+    private static WSWSVoucher[] getDatas(){
+        WSWSVoucher[] rows = new WSWSVoucher[1];
+        String companyNumber = "ZZZ02-01";
+        String voucherNumber = "v001";
+        int periodYear = 2022;
+        int periodNumber = 3;
+        String date = "2022-03-09";
+        String voucherType = "记记";
+        String description = "webservice test";
+        String voucherAbstract = "webservice test";
+        String creator = "lhh11";
+
+
+        WSWSVoucher wswsVoucher = new WSWSVoucher();
+        wswsVoucher.setCompanyNumber(companyNumber);
+        wswsVoucher.setVoucherNumber(voucherNumber);
+        wswsVoucher.setPeriodYear(periodYear);
+        wswsVoucher.setPeriodNumber(periodNumber);
+        wswsVoucher.setBookedDate(date);
+        wswsVoucher.setBizDate(date);
+        wswsVoucher.setVoucherType(voucherType);
+        wswsVoucher.setDescription(description);
+        wswsVoucher.setVoucherAbstract(voucherAbstract);
+        wswsVoucher.setCreator(creator);
+
+        wswsVoucher.setEntrySeq(1);//entrySeq
+        wswsVoucher.setAccountNumber("1001");//accountNumber
+        wswsVoucher.setCurrencyNumber("BB01");//currencyNumber
+        wswsVoucher.setEntryDC(1);//entryDC
+
+        wswsVoucher.setOriginalAmount(10);//originalAmount
+        wswsVoucher.setDebitAmount(10);//debitAmount
+        wswsVoucher.setCreditAmount(0);//creditAmount
+
+        //wswsVoucher.setAsstSeq(0);//asstSeq
+        wswsVoucher.setAsstActType1("");   //asstActType1
+        wswsVoucher.setAsstActNumber1("");//asstActNumber1
+        wswsVoucher.setAsstActName1("");//asstActName1
+        wswsVoucher.setAsstActType2("");//asstActType2
+        wswsVoucher.setAsstActNumber2("");//asstActNumber2
+        wswsVoucher.setAsstActName2("");//asstActName2
+
+        wswsVoucher.setItemFlag(0);//itemFlag
+        wswsVoucher.setOppAccountSeq(0);//oppAccountSeq
+        wswsVoucher.setOppAccountSeq(0);//oppAsstSeq
+        wswsVoucher.setPrimaryItem("");//primaryItem
+        wswsVoucher.setType("");//type
+        wswsVoucher.setCashflowAmountOriginal(0);//cashflowAmountOriginal
+        wswsVoucher.setCashflowAmountLocal(0);//cashflowAmountLocal
+        rows[0] = wswsVoucher;
+
+        return rows;
     }
 
     private void storageOnlinePayment(){
