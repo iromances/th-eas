@@ -7,7 +7,7 @@
 
 package com.thchengtay.eas.model.eas;
 
-public class WSWSVoucher extends mypackage.WSBean  implements java.io.Serializable {
+public class WSWSVoucher extends WSBean implements java.io.Serializable {
     private String accountNumber;
 
     private String assistBizDate;

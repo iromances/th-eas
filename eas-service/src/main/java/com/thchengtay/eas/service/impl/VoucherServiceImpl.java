@@ -1,6 +1,8 @@
 package com.thchengtay.eas.service.impl;
 
 import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.thchengtay.cache.util.RedisIdWorker;
 import com.thchengtay.eas.dao.VoucherMapper;
@@ -60,8 +62,8 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, VoucherEntity
 
     private static final String cretor = "黄丹红";
     private static final String companyNumber = "001";
-    private static final String ENTRY_D = "借";
-    private static final String ENTRY_C = "贷";
+    private static final String ENTRY_D = "1";  //借
+    private static final String ENTRY_C = "0";   //贷
     private static final String VOUCHER_TYPE = "记账凭证";
 
     private LocalDate today;
@@ -152,64 +154,81 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, VoucherEntity
 
         call.addHeader(header);
 
-        WSWSVoucher[] rows = getDatas();
+        WSWSVoucher[] rows = getDatas(jsonObject.getString("batchNo"));
 
 
         WSWSRtnInfo[] invoke = (WSWSRtnInfo[]) call.invoke(new Object[]{rows, true, true, false});
         //Object ob = call.invoke(new Object[]{rows, false, false, false});
     }
 
-    private static WSWSVoucher[] getDatas(){
-        WSWSVoucher[] rows = new WSWSVoucher[1];
-        String companyNumber = "ZZZ02-01";
-        String voucherNumber = "v001";
-        int periodYear = 2022;
-        int periodNumber = 3;
-        String date = "2022-03-09";
-        String voucherType = "记记";
-        String description = "webservice test";
-        String voucherAbstract = "webservice test";
-        String creator = "lhh11";
+    private WSWSVoucher[] getDatas(String batchNo){
+
+        List<VoucherEntity> voucherList = voucherMapper.listByBatchNo(batchNo);
 
 
-        WSWSVoucher wswsVoucher = new WSWSVoucher();
-        wswsVoucher.setCompanyNumber(companyNumber);
-        wswsVoucher.setVoucherNumber(voucherNumber);
-        wswsVoucher.setPeriodYear(periodYear);
-        wswsVoucher.setPeriodNumber(periodNumber);
-        wswsVoucher.setBookedDate(date);
-        wswsVoucher.setBizDate(date);
-        wswsVoucher.setVoucherType(voucherType);
-        wswsVoucher.setDescription(description);
-        wswsVoucher.setVoucherAbstract(voucherAbstract);
-        wswsVoucher.setCreator(creator);
+        List<String> seqNos = voucherList.stream().map(VoucherEntity::getSeqNo).collect(Collectors.toList());
 
-        wswsVoucher.setEntrySeq(1);//entrySeq
-        wswsVoucher.setAccountNumber("1001");//accountNumber
-        wswsVoucher.setCurrencyNumber("BB01");//currencyNumber
-        wswsVoucher.setEntryDC(1);//entryDC
+        LambdaQueryWrapper<AssistAccountEntity> queryWrapper= Wrappers.lambdaQuery();
+        queryWrapper.in(AssistAccountEntity::getSeqNo, seqNos);
+        List<AssistAccountEntity> assistAccountList = assistAccountService.list(queryWrapper);
 
-        wswsVoucher.setOriginalAmount(10);//originalAmount
-        wswsVoucher.setDebitAmount(10);//debitAmount
-        wswsVoucher.setCreditAmount(0);//creditAmount
+        WSWSVoucher[] rows = new WSWSVoucher[voucherList.size()];
+        for (int i = 0; i < voucherList.size(); i++) {
 
-        //wswsVoucher.setAsstSeq(0);//asstSeq
-        wswsVoucher.setAsstActType1("");   //asstActType1
-        wswsVoucher.setAsstActNumber1("");//asstActNumber1
-        wswsVoucher.setAsstActName1("");//asstActName1
-        wswsVoucher.setAsstActType2("");//asstActType2
-        wswsVoucher.setAsstActNumber2("");//asstActNumber2
-        wswsVoucher.setAsstActName2("");//asstActName2
+            VoucherEntity voucherEntity = voucherList.get(i);
 
-        wswsVoucher.setItemFlag(0);//itemFlag
-        wswsVoucher.setOppAccountSeq(0);//oppAccountSeq
-        wswsVoucher.setOppAccountSeq(0);//oppAsstSeq
-        wswsVoucher.setPrimaryItem("");//primaryItem
-        wswsVoucher.setType("");//type
-        wswsVoucher.setCashflowAmountOriginal(0);//cashflowAmountOriginal
-        wswsVoucher.setCashflowAmountLocal(0);//cashflowAmountLocal
-        rows[0] = wswsVoucher;
+            List<AssistAccountEntity> matchedAssistAccount = assistAccountList.stream()
+                    .filter(assistAccountEntity -> assistAccountEntity.getSeqNo().equals(voucherEntity.getSeqNo())).collect(Collectors.toList());
 
+
+            WSWSVoucher wswsVoucher = new WSWSVoucher();
+            //公司编码
+            wswsVoucher.setCompanyNumber(voucherEntity.getCompanyNumber());
+
+            wswsVoucher.setVoucherNumber(i+"");
+            wswsVoucher.setPeriodNumber(Integer.valueOf(voucherEntity.getPeriodNumber()));
+            wswsVoucher.setBookedDate(voucherEntity.getBookedDate());
+            wswsVoucher.setBizDate(voucherEntity.getBizDate());
+            wswsVoucher.setVoucherType(voucherEntity.getVoucherType());
+            wswsVoucher.setVoucherAbstract(voucherEntity.getVoucherAbstract());
+            wswsVoucher.setCreator(voucherEntity.getCreator());
+
+            wswsVoucher.setEntrySeq(1);//entrySeq
+            wswsVoucher.setAccountNumber(voucherEntity.getAccountNumber());//accountNumber
+
+            wswsVoucher.setCurrencyNumber("BB01");//currencyNumber
+            wswsVoucher.setEntryDC(Integer.valueOf(voucherEntity.getEntrydc()));//entryDC
+
+            wswsVoucher.setOriginalAmount(voucherEntity.getOriginalAmount().doubleValue());//originalAmount
+            wswsVoucher.setDebitAmount(voucherEntity.getDebitAmount().doubleValue());//debitAmount
+            wswsVoucher.setCreditAmount(voucherEntity.getCreditAmount().doubleValue());//creditAmount
+
+            //wswsVoucher.setAsstSeq(0);//asstSeq
+
+            for (int j = 0; j < matchedAssistAccount.size(); j++) {
+                AssistAccountEntity assistAccountEntity = matchedAssistAccount.get(j);
+                switch (j){
+                    case 0:
+                        wswsVoucher.setAsstActType1(assistAccountEntity.getAsstActType1());   //asstActType1
+                        wswsVoucher.setAsstActNumber1(assistAccountEntity.getAsstActNumber1());//asstActNumber1
+                        wswsVoucher.setAsstActName1(assistAccountEntity.getAsstActName1());//asstActName1
+                        break;
+                    case 1:
+                        wswsVoucher.setAsstActType2(assistAccountEntity.getAsstActType2());   //asstActType1
+                        wswsVoucher.setAsstActNumber2(assistAccountEntity.getAsstActNumber2());//asstActNumber1
+                        wswsVoucher.setAsstActName2(assistAccountEntity.getAsstActName2());//asstActName1
+                        break;
+                    case 2:
+                        wswsVoucher.setAsstActType3(assistAccountEntity.getAsstActType3());   //asstActType1
+                        wswsVoucher.setAsstActNumber3(assistAccountEntity.getAsstActNumber3());//asstActNumber1
+                        wswsVoucher.setAsstActName3(assistAccountEntity.getAsstActName3());//asstActName1
+                        break;
+                    default:
+                        break;
+                }
+            }
+            rows[i] = wswsVoucher;
+        }
         return rows;
     }
 

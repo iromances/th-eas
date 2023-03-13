@@ -105,10 +105,14 @@
         JOIN amp_saps.`repayment_plan` rp ON rppd.`bill_no` = rp.`bill_no`
         WHERE rppd.`is_cancel` = 0 AND rppd.`is_delete` = 0
         AND rp.`is_cancel` = 0 AND rp.`is_delete` = 0
-        AND rppd.`settlement_time` >= '' AND rppd.`settlement_time` < ''
+        AND rppd.`settlement_time` >= #{startTime} AND rppd.`settlement_time` &lt; #{endTime}
         AND rppd.`payment_mode` = 10
         GROUP BY rp.`product_code`
     </select>
 
+
+    <select id="listByBatchNo" resultType="VoucherEntity">
+        select * from th_eas.voucher v where v.batch_no = #{batchNo} and v.is_delete = 0
+    </select>
 
 </mapper>

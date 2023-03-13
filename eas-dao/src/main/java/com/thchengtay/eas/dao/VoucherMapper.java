@@ -33,4 +33,6 @@ public interface VoucherMapper extends BaseMapper<VoucherEntity> {
     List<RepaymentPlanPaySubjectDetailDto> listOnlinePaySubjectDetail(LoanOrderCriteria criteria);
 
 
+    List<VoucherEntity> listByBatchNo(String batchNo);
+
 }

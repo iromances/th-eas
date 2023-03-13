@@ -1,8 +1,11 @@
 package com.thchengtay.eas.model.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.thchengtay.common.bo.BaseBo;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.time.LocalDateTime;
 
 /***
  *
@@ -14,20 +17,31 @@ import lombok.Setter;
 @Getter
 @Setter
 @TableName("api_log")
-public class ApiLogEntity {
+public class ApiLogEntity extends BaseBo {
 
     private String batchNo;
-    private String requestType;
-    private String url;
-    private String reqestBody;
-    private String requestTime;
-    private String responseCode;
-    private String responseMessage;
-    private String responseTime;
-    private String responseBody;
-    private String status;
-    private String needRetryCount;
-    private String realRetryCount;
-    private Long time;
 
+    private String requestType;
+
+    private String url;
+
+    private String reqestBody;
+
+    private LocalDateTime requestTime;
+
+    private String responseCode;
+
+    private String responseMessage;
+
+    private LocalDateTime responseTime;
+
+    private String responseBody;
+
+    private String status;
+
+    private String needRetryCount;
+
+    private String realRetryCount;
+
+    private Long time;
 }
