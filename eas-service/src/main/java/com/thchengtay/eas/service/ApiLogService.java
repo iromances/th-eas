@@ -3,6 +3,8 @@ package com.thchengtay.eas.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.thchengtay.eas.model.entity.ApiLogEntity;
 
+import java.util.List;
+
 /***
  *
  *
@@ -13,5 +15,6 @@ import com.thchengtay.eas.model.entity.ApiLogEntity;
 public interface ApiLogService extends IService<ApiLogEntity> {
 
 
+    List<ApiLogEntity> listNeedRetryData();
 
 }

@@ -2,7 +2,11 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.thchengtay.eas.dao.ApiLogMapper">
 
-
+    <select id="listNeedRetryData" resultType="ApiLogEntity">
+        select * from api_log t
+        where t.is_delete = 0 and t.real_retry_count &lt; t.need_retry_count
+              and t.status != "4"
+    </select>
 
 
 </mapper>

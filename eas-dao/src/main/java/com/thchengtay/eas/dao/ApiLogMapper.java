@@ -3,6 +3,8 @@ package com.thchengtay.eas.dao;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.thchengtay.eas.model.entity.ApiLogEntity;
 
+import java.util.List;
+
 /***
  *
  *
@@ -11,6 +13,9 @@ import com.thchengtay.eas.model.entity.ApiLogEntity;
  *
  */
 public interface ApiLogMapper extends BaseMapper<ApiLogEntity> {
+
+
+    List<ApiLogEntity> listNeedRetryData();
 
 
 

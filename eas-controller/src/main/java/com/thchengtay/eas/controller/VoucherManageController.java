@@ -42,6 +42,9 @@ public class VoucherManageController extends BaseController {
         if (StringUtils.isNotBlank(requestVo.getAccountNumber())){
             queryWrapper.eq(VoucherEntity::getAccountNumber, requestVo.getAccountNumber());
         }
+        if (StringUtils.isNotBlank(requestVo.getBatchNo())){
+            queryWrapper.eq(VoucherEntity::getBatchNo, requestVo.getBatchNo());
+        }
         IPage<VoucherEntity> result = voucherService.page(page, queryWrapper);
         return success(toResultMap(result.getRecords(), result.getTotal()));
     }

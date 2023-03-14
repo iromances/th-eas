@@ -13,6 +13,7 @@ import lombok.Setter;
 @Setter
 public class VoucherRequestVo extends Page {
 
+    private String batchNo;
 
     private String searchTime;
 

@@ -9,12 +9,13 @@ import com.thchengtay.eas.dao.VoucherMapper;
 import com.thchengtay.eas.model.dto.*;
 import com.thchengtay.eas.model.dto.schedule.VoucherExecuteParam;
 import com.thchengtay.eas.model.eas.WSContext;
-import com.thchengtay.eas.model.eas.WSWSRtnInfo;
 import com.thchengtay.eas.model.eas.WSWSVoucher;
+import com.thchengtay.eas.model.entity.ApiLogEntity;
 import com.thchengtay.eas.model.entity.AssistAccountEntity;
 import com.thchengtay.eas.model.entity.AssistMappingEntity;
 import com.thchengtay.eas.model.entity.VoucherEntity;
 import com.thchengtay.eas.model.enums.EASSubjectEnum;
+import com.thchengtay.eas.service.ApiLogService;
 import com.thchengtay.eas.service.AssistAccountService;
 import com.thchengtay.eas.service.AssistMappingService;
 import com.thchengtay.eas.service.VoucherService;
@@ -23,15 +24,14 @@ import org.apache.axis.client.Call;
 import org.apache.axis.message.SOAPHeaderElement;
 import org.apache.commons.collections.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.xml.namespace.QName;
 import javax.xml.rpc.ParameterMode;
-import javax.xml.rpc.ServiceException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.net.URL;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -58,6 +58,8 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, VoucherEntity
     @Autowired
     private AssistMappingService assistMappingService;
     @Autowired
+    private ApiLogService apiLogService;
+    @Autowired
     private RedisIdWorker redisIdWorker;
 
     private static final String cretor = "黄丹红";
@@ -65,15 +67,24 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, VoucherEntity
     private static final String ENTRY_D = "1";  //借
     private static final String ENTRY_C = "0";   //贷
     private static final String VOUCHER_TYPE = "记账凭证";
+    protected static final String IP = "10.10.116.14";
+    protected static final String PORT ="6888";
+    protected static final String DC ="chengtai";
+    protected static final String USERNAME ="robot";
+    protected static final String PASSWORD ="ct123456";
+    protected static final String LANG ="L2";
 
     private LocalDate today;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private String batchNo;
+    private final List<AssistAccountEntity> assistAccountList = new ArrayList<>();
+    private final List<VoucherEntity> voucherList = new ArrayList<>();
+
 
     @Transactional
     @Override
-    public void importVoucher(VoucherExecuteParam voucherExecuteParam) {
+    public void importVoucher(VoucherExecuteParam voucherExecuteParam) throws Exception {
 
         initExecuteParams(voucherExecuteParam);
 
@@ -93,23 +104,19 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, VoucherEntity
         //线上回款--账务部分
         storageOnlineSaps();
 
-
         //线上回款---支付部分
         storageOnlinePayment();
+
+        super.saveBatch(voucherList);
+        assistAccountService.saveBatch(assistAccountList);
+
+        push(batchNo, null);
     }
 
 
-    protected static final String IP = "10.10.116.14";
-    protected static final String PORT ="6888";
-    protected static final String DC ="chengtai";
-    protected static final String USERNAME ="robot";
-    protected static final String PASSWORD ="ct123456";
-    protected static final String LANG ="L2";
 
-    @Transactional
-    @Override
-    public void push(JSONObject jsonObject) throws Exception {
 
+    public String[][] push2(String batchNo, Long id) throws Exception {
         org.apache.axis.client.Service service = new org.apache.axis.client.Service();
         Call call = (Call) service.createCall();
         call.setOperationName("login");
@@ -123,7 +130,7 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, VoucherEntity
         WSContext ctx = (WSContext) call.invoke(new Object[]{USERNAME, PASSWORD, "eas", DC, LANG, 0});
         if(ctx.getSessionId() == null){
             System.out.println("登录失败!");
-            return;
+            return null;
         }
 
         System.out.println("登录成功" + ctx.getSessionId());
@@ -132,16 +139,18 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, VoucherEntity
         call.setOperationName("importVoucher");
         call.setTargetEndpointAddress("http://"+IP+":"+PORT+"/ormrpc/services/WSWSVoucher");
 
-        call.addParameter("voucherCols", new QName("http://ww.w3.org/2001/XMLSchema","string"), WSWSVoucher[].class, ParameterMode.IN);
+ /*       call.addParameter("voucherCols", new QName("http://ww.w3.org/2001/XMLSchema","string"), WSWSVoucher[].class, ParameterMode.IN);
         call.addParameter("isTempSave", new QName("http://ww.w3.org/2001/XMLSchema","string"),boolean.class, ParameterMode.IN);
         call.addParameter("isVerify", new QName("http://ww.w3.org/2001/XMLSchema","string"), boolean.class, ParameterMode.IN);
         call.addParameter("hasCashflow", new QName("http://ww.w3.org/2001/XMLSchema","string"), boolean.class, ParameterMode.IN);
+*/
+        call.addParameter("voucherCols", new QName("http://ww.w3.org/2001/XMLSchema","string"), WSWSVoucher[].class, ParameterMode.IN);
+        call.addParameter("isVerify", new QName("http://ww.w3.org/2001/XMLSchema","string"), int.class, ParameterMode.IN);
+        call.addParameter("hasCashflow", new QName("http://ww.w3.org/2001/XMLSchema","string"), int.class, ParameterMode.IN);
 
-        //call.setReturnClass(String.class);
-        //call.setReturnQName(new QName("nImportVoucherReturn"));
 
-        //call.setReturnClass(Object.class);
-        call.setReturnClass(WSWSRtnInfo[].class);
+        call.setReturnClass(String.class);
+        //call.setReturnClass(WSWSRtnInfo[].class);
 
         call.setReturnQName(new QName("importVoucherReturn"));
 
@@ -154,11 +163,43 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, VoucherEntity
 
         call.addHeader(header);
 
-        WSWSVoucher[] rows = getDatas(jsonObject.getString("batchNo"));
+        WSWSVoucher[] rows = getDatas(batchNo);
 
+        //WSWSRtnInfo[] invoke = (WSWSRtnInfo[]) call.invoke(new Object[]{rows, true, true, false});
+        String[][] invoke = (String[][]) call.invoke(new Object[]{rows, 1, 0});
 
-        WSWSRtnInfo[] invoke = (WSWSRtnInfo[]) call.invoke(new Object[]{rows, true, true, false});
-        //Object ob = call.invoke(new Object[]{rows, false, false, false});
+        return invoke;
+    }
+
+    @Async
+    @Override
+    public void push(String batchNo, Long id) throws Exception {
+        long l = System.currentTimeMillis();
+        LocalDateTime startTime = LocalDateTime.now();
+        String[][] invoke = push2(batchNo, id);
+        LocalDateTime endTime = LocalDateTime.now();
+        long l2 = System.currentTimeMillis();
+        ApiLogEntity apiLogEntity = new ApiLogEntity();
+        apiLogEntity.setBatchNo(batchNo);
+        apiLogEntity.setPid(id);
+        apiLogEntity.setRequestType("POST");
+        apiLogEntity.setUrl("http://"+IP+":"+PORT+"/ormrpc/services/WSWSVoucher");
+        apiLogEntity.setRequestTime(startTime);
+        //apiLogEntity.setResponseCode();
+        apiLogEntity.setResponseBody(invoke.toString());
+        apiLogEntity.setResponseTime(endTime);
+
+        if (invoke[0][0].contains("成功")){
+            apiLogEntity.setStatus("4");
+            apiLogEntity.setResponseMessage(invoke[0][0]);
+        }else {
+            apiLogEntity.setStatus("3");
+            apiLogEntity.setResponseMessage(invoke[0][0]);
+        }
+        apiLogEntity.setNeedRetryCount(3);
+        apiLogEntity.setRealRetryCount(0);
+        apiLogEntity.setTime(l2-l);
+        apiLogService.save(apiLogEntity);
     }
 
     private WSWSVoucher[] getDatas(String batchNo){
@@ -241,9 +282,6 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, VoucherEntity
         //合作方费用&&先行通费用
         List<RepaymentPlanPaySubjectDetailDto> repaymentPlanPaySubjectDetailList = voucherMapper.listOnlinePaySubjectDetail(criteria);
 
-
-        List<VoucherEntity> voucherList = new ArrayList<>();
-        List<AssistAccountEntity> assistAccountList = new ArrayList<>();
         for (RepaymentPlanPayDetailDto repaymentPlanPayDetail : repaymentPlanPayDetailList) {
             VoucherEntity statementVoucher = new VoucherEntity();
             statementVoucher.setSeqNo(redisIdWorker.nextSecondId4(""));
@@ -354,9 +392,6 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, VoucherEntity
             assistAccountList.add(feeAssistAccountEntity);
         }
 
-        super.saveBatch(voucherList);
-        assistAccountService.saveBatch(assistAccountList);
-
     }
 
 
@@ -367,8 +402,6 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, VoucherEntity
         //筛选资方本金和服务费生成凭证
         List<RepaymentPlanDto> collect = repaymentPlanList.stream()
                 .filter(rp -> rp.getSubjectNo().equals("P0001") || rp.getSubjectNo().equals("P0003")).collect(Collectors.toList());
-        List<VoucherEntity> voucherList = new ArrayList<>();
-        List<AssistAccountEntity> assistAccountList = new ArrayList<>();
 
         for (RepaymentPlanDto repaymentPlan : collect) {
             if (repaymentPlan.getSubjectNo().equals("P0003")){
@@ -653,10 +686,6 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, VoucherEntity
                 assistAccountList.add(assistAccountEntity);
             });
         }
-
-        super.saveBatch(voucherList);
-        assistAccountService.saveBatch(assistAccountList);
-
     }
 
     private void storageOnlineStatementDetail(){
@@ -666,9 +695,6 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, VoucherEntity
 
         Map<String, List<StatementResourceDto>> groupStatementResources = statementList
                 .stream().collect(Collectors.groupingBy(StatementResourceDto -> StatementResourceDto.getCooperationCode() + "-" + StatementResourceDto.getStatementType().getDesc()  + "-" + StatementResourceDto.getSubjectNo()));
-
-        List<VoucherEntity> voucherList = new ArrayList<>();
-        List<AssistAccountEntity> assistAccountList = new ArrayList<>();
 
         groupStatementResources.forEach((k,v)->{
 
@@ -905,9 +931,6 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, VoucherEntity
         Map<String, List<StatementDto>> groupByCooperation = statementList
                 .stream().collect(Collectors.groupingBy(statementDto -> statementDto.getCooperationCode() + "-" + statementDto.getStatementType().getDesc()));
 
-        List<VoucherEntity> voucherList = new ArrayList<>();
-        List<AssistAccountEntity> assistAccountList = new ArrayList<>();
-
         groupByCooperation.forEach((k,v)->{
 
             StatementDto firstStatement = v.get(0);
@@ -963,8 +986,6 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, VoucherEntity
 
         Map<String, List<LoanPaymentDto>> groupByCooperationCode = loanPaymentList.stream().collect(Collectors.groupingBy(LoanPaymentDto::getCooperationCode));
 
-        List<AssistAccountEntity> assistAccountList = new ArrayList<>();
-        List<VoucherEntity> voucherList = new ArrayList<>();
         groupByCooperationCode.forEach((k,v)->{
 
             //放款手续费凭证
@@ -974,9 +995,6 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, VoucherEntity
             remitOrderDetailVoucher(v, assistAccountList, voucherList);
 
         });
-
-        super.saveBatch(voucherList);
-        assistAccountService.saveBatch(assistAccountList);
     }
 
 
@@ -1177,8 +1195,6 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, VoucherEntity
         criteria.setEndTime(endTime);
         List<LoanOrderDto> loanOrderList = voucherMapper.listLoanOrderVoucher(criteria);
 
-        List<AssistAccountEntity> assistAccountList = new ArrayList<>();
-        List<VoucherEntity> voucherList = new ArrayList<>();
         Map<String, List<LoanOrderDto>> groupListByCooperationCode = loanOrderList.stream().collect(Collectors.groupingBy(LoanOrderDto::getCooperationCode));
         Iterator<Map.Entry<String, List<LoanOrderDto>>> iterator = groupListByCooperationCode.entrySet().iterator();
         int i  = 0;
@@ -1243,9 +1259,6 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, VoucherEntity
                 });
             }
         }
-
-        super.saveBatch(voucherList);
-        assistAccountService.saveBatch(assistAccountList);
     }
 
 

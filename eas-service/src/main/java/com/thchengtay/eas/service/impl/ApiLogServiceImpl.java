@@ -7,6 +7,8 @@ import com.thchengtay.eas.service.ApiLogService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 /***
  *
  *
@@ -19,5 +21,8 @@ import org.springframework.stereotype.Service;
 public class ApiLogServiceImpl extends ServiceImpl<ApiLogMapper, ApiLogEntity> implements ApiLogService {
 
 
-
+    @Override
+    public List<ApiLogEntity> listNeedRetryData() {
+        return baseMapper.listNeedRetryData();
+    }
 }

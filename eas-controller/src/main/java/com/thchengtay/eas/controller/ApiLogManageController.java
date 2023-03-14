@@ -46,7 +46,6 @@ public class ApiLogManageController extends BaseController {
         if (StringUtils.isNotBlank(requestVo.getStatus())){
             queryWrapper.eq(ApiLogEntity::getStatus, requestVo.getStatus());
         }
-
         IPage<ApiLogEntity> result = apiLogService.page(page, queryWrapper);
         for (ApiLogEntity record : result.getRecords()) {
             if (record.getStatus().equals("3")){
@@ -62,10 +61,7 @@ public class ApiLogManageController extends BaseController {
     @PostMapping("/api/log/retry/{id}")
     public Result retry(@PathVariable Long id) throws Exception {
         ApiLogEntity apiLog = apiLogService.getById(id);
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("batchNo", apiLog.getBatchNo());
-        jsonObject.put("id", id);
-        voucherService.push(jsonObject);
+        voucherService.push(apiLog.getBatchNo(), id);
         return success();
     }
 }

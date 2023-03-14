@@ -16,8 +16,8 @@ import javax.xml.rpc.ServiceException;
  */
 public interface VoucherService extends IService<VoucherEntity> {
 
-    void importVoucher(VoucherExecuteParam voucherExecute);
+    void importVoucher(VoucherExecuteParam voucherExecute) throws Exception;
 
-    void push(JSONObject jsonObject) throws Exception;
+    void push(String batchNo, Long id) throws Exception;
 
 }

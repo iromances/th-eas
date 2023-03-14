@@ -23,7 +23,7 @@ public class TestController extends BaseController {
     private VoucherService voucherService;
 
     @PostMapping("/test")
-    public Result test(@RequestBody VoucherExecuteParam param){
+    public Result test(@RequestBody VoucherExecuteParam param) throws Exception {
         voucherService.importVoucher(param);
         return success();
     }

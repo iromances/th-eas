@@ -19,6 +19,8 @@ import java.time.LocalDateTime;
 @TableName("api_log")
 public class ApiLogEntity extends BaseBo {
 
+    private Long pid;
+
     private String batchNo;
 
     private String requestType;
@@ -39,9 +41,9 @@ public class ApiLogEntity extends BaseBo {
 
     private String status;
 
-    private String needRetryCount;
+    private Integer needRetryCount;
 
-    private String realRetryCount;
+    private Integer realRetryCount;
 
     private Long time;
 }
