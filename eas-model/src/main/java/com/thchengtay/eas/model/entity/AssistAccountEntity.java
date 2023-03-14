@@ -30,12 +30,15 @@ public class AssistAccountEntity {
     private String bizNumber;    //业务编号',
     private String ticketNumber;   //票证号码',
     private String invoiceNumber;    //发票号码',
+
     private String asstActType;   //核算项目类型',
     private String asstActNumber; //核算项目编码',
     private String asstActName;    //核算项目名称',
+
     private String asstActType1;   //核算项目类型',
     private String asstActNumber1; //核算项目编码',
     private String asstActName1;    //核算项目名称',
+
     private String asstActType2;   //核算项目类型',
     private String asstActNumber2; //核算项目编码',
     private String asstActName2;    //核算项目名称',

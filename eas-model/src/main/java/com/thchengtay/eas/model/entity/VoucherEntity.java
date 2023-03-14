@@ -1,10 +1,12 @@
 package com.thchengtay.eas.model.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /***
  *
@@ -62,4 +64,6 @@ public class VoucherEntity {
     //现金流量本位币金额
     private BigDecimal cashflowAmountLocal;
 
+    @TableField(exist = false)
+    private List<AssistAccountEntity> assistAccountList;
 }

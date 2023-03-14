@@ -7,8 +7,10 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.thchengtay.common.core.BaseController;
 import com.thchengtay.common.core.Result;
+import com.thchengtay.eas.model.entity.AssistAccountEntity;
 import com.thchengtay.eas.model.entity.VoucherEntity;
 import com.thchengtay.eas.model.vo.VoucherRequestVo;
+import com.thchengtay.eas.service.AssistAccountService;
 import com.thchengtay.eas.service.VoucherService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,6 +18,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /***
  *
@@ -26,9 +30,10 @@ import java.time.format.DateTimeFormatter;
  */
 @RestController
 public class VoucherManageController extends BaseController {
-
     @Autowired
     private VoucherService voucherService;
+    @Autowired
+    private AssistAccountService assistAccountService;
 
 
     @GetMapping("/voucher/index")
@@ -46,6 +51,19 @@ public class VoucherManageController extends BaseController {
             queryWrapper.eq(VoucherEntity::getBatchNo, requestVo.getBatchNo());
         }
         IPage<VoucherEntity> result = voucherService.page(page, queryWrapper);
+
+        List<String> seqNos = result.getRecords().stream().map(VoucherEntity::getSeqNo).collect(Collectors.toList());
+
+        LambdaQueryWrapper<AssistAccountEntity> assistAccountQueryWrapper= Wrappers.lambdaQuery();
+        assistAccountQueryWrapper.in(AssistAccountEntity::getSeqNo, seqNos);
+        List<AssistAccountEntity> assistAccountList = assistAccountService.list(assistAccountQueryWrapper);
+        for (VoucherEntity voucherEntity : result.getRecords()) {
+            List<AssistAccountEntity> matchedAssistAccount = assistAccountList.stream()
+                    .filter(assistAccountEntity -> assistAccountEntity.getSeqNo().equals(voucherEntity.getSeqNo())).collect(Collectors.toList());
+
+            voucherEntity.setAssistAccountList(matchedAssistAccount);
+        }
+
         return success(toResultMap(result.getRecords(), result.getTotal()));
     }
 

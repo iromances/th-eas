@@ -68,7 +68,7 @@
                                     JOIN amp_saps.`repayment_plan` rp ON sr.`bill_no` = rp.`bill_no`
         WHERE sr.`subject_no` IN ('P0001','P0003')
         AND s.`statement_type` IN (1000, 2000, 3000, 4000)
-            #AND s.`bill_date` = #{billDate}
+        AND s.`bill_date` = #{billDate}
         AND s.`is_cancel` = 0 AND s.`is_delete` = 0
         AND rp.`is_delete` = 0 AND rp.`is_cancel` = 0
         GROUP BY s.`cooperation_code`,s.`statement_type`,sr.`subject_no`,rp.`product_code`
@@ -76,9 +76,10 @@
 
 
     <select id="listOnlinePayment" parameterType="LoanOrderCriteria" resultType="RepaymentPlanDto">
-        SELECT rp.`cooperation_code`,rp.`cooperation_name`,rp.`product_code`,rp.`product_name`,rp.`project_no`,bfd.`subject_no`,bfd.`subject_name`,
+        SELECT rp.`cooperation_code`,rp.`cooperation_name`,rp.`product_code`,p.`name` as 'productName',rp.`project_no`,bfd.`subject_no`,bfd.`subject_name`,
         SUM(bfd.`total_amount`) totalAmount
         FROM amp_saps.`repayment_plan` rp JOIN amp_saps.`bill_fee_detail` bfd ON rp.`bill_no` = bfd.`bill_no`
+        JOIN amp_order.`amp_product` p ON rp.`product_code` = p.`code`
         WHERE rp.`payment_mode` = 10 AND rp.`is_cancel` = 0 AND rp.`is_delete` = 0
         AND bfd.`is_cancel` = 0 AND bfd.`is_delete` = 0
         AND rp.`settlement_time` >=  #{startTime} AND rp.`settlement_time` &lt; #{endTime}
@@ -87,15 +88,16 @@
 
 
     <select id="listOnlinePaySubjectDetail" parameterType="LoanOrderCriteria" resultType="RepaymentPlanPayDetailDto">
-        SELECT rp.`product_code`,rp.`project_name`,rp.`project_no`,rp.`project_name`,SUM(rppd.`pay_amount`) totalAmount
+        SELECT rp.`product_code`,rp.`project_name`,rp.`project_no`,p.`name` AS 'projectName',SUM(rppd.`pay_amount`) totalAmount
         FROM amp_saps.`repayment_plan_pay_detail` rppd
         JOIN amp_saps.`repayment_plan_pay_subject_detail` rppsd ON rppd.`serial_no` = rppsd.`pay_detail_serial_no`
         JOIN amp_saps.`repayment_plan` rp ON rppd.`bill_no` = rp.`bill_no`
+        JOIN amp_order.`amp_product` p ON rp.`product_code` = p.`code`
         WHERE rppd.`is_cancel` = 0 AND rppd.`is_delete` = 0 AND rppsd.`is_cancel` = 0 AND rppsd.`is_delete` = 0
         AND rp.`is_cancel` = 0 AND rp.`is_delete` = 0
         AND rppd.`settlement_time` >= #{startTime} AND rppd.`settlement_time` &lt; #{endTime}
         AND rppd.`payment_mode` = 10
-        AND bfd.subject_no not in ('P0001','P0003')
+        AND rppsd.subject_no not in ('P0001','P0003')
         GROUP BY rp.`product_code`
     </select>
 
@@ -115,4 +117,72 @@
         select * from th_eas.voucher v where v.batch_no = #{batchNo} and v.is_delete = 0
     </select>
 
+    <select id="discountInterest" parameterType="LoanOrderCriteria" resultType="DiscountInterestDto">
+        SELECT
+        t.`cooperation_code`,
+        t.`cooperation_name`,
+        t.`product_code`,
+        t.`productName`,
+        t.`project_name`,
+        t.`project_no`,
+        SUM(t.serviceFee) 'serviceFee'
+        FROM (
+        SELECT
+        rp.id,
+        rp.`cooperation_code`,
+        rp.`cooperation_name`,
+        rp.`product_code`,
+        p.`name` as 'productName',
+        rp.`project_name`,
+        rp.`project_no`,
+        lo.`service_fee`/lo.`loan_period` AS 'serviceFee'
+        FROM amp_saps.`repayment_plan` rp JOIN amp_capital.`loan_order` lo ON rp.`loan_id` = lo.`loan_application_no`
+                                          join amp_order.amp_product p on rp.product_code = p.code
+        WHERE rp.`interest_subsidy_mode` != 2 AND rp.`is_cancel` = 0 AND rp.`is_delete` = 0
+        AND lo.`is_delete` = 0 AND lo.`is_cancel` = 0
+        AND rp.`settlement_time` >= #{startTime}
+        AND rp.`settlement_time` &lt; #{endTime}
+        AND rp.`bill_status` NOT IN(400,401)
+
+        UNION ALL
+
+        SELECT
+        rp.id,
+        rp.`cooperation_code`,
+        rp.`cooperation_name`,
+        rp.`product_code`,
+        p.`name` as 'productName',
+        rp.`project_name`,
+        rp.`project_no`,
+        bfd.`total_amount` 'serviceFee'
+        FROM amp_saps.`repayment_plan` rp JOIN amp_saps.`bill_fee_detail` bfd ON rp.`bill_no` = bfd.`bill_no`
+            join amp_order.amp_product p on rp.product_code = p.code
+        WHERE rp.`interest_subsidy_mode` != 2
+        AND rp.`is_cancel` = 0 AND rp.`is_delete` = 0
+        AND bfd.`is_delete` = 0 AND bfd.`is_cancel` = 0
+        AND bfd.`subject_no` = 'P0003'
+        AND rp.`bill_status` IN(400,401)
+        AND bfd.`total_amount` &lt; 0
+        AND rp.`settlement_time` >= #{startTime}
+        AND rp.`settlement_time` &lt; #{endTime}
+        ) t
+        GROUP BY t.`cooperation_code`, t.`product_code`;
+    </select>
+
+
+    <select id="baofuPaymentFee" parameterType="LoanOrderCriteria" resultType="PaymentFeeDto">
+        SELECT t.`channel_id` channel,
+            SUM(t.`channel_fee`) channelFee,
+            lo.`product_code`,
+            lo.`product_name`,
+            lo.`project_code`,
+            lo.`cooperation_code`,
+            lo.`cooperation_name`
+        FROM amp_payment.`order_business` t JOIN amp_capital.`loan_order` lo ON t.`application_no` = lo.`application_no`
+        WHERE t.`is_cancel` = 0 AND t.`is_delete` = 0 AND t.`status` = 4 AND t.`transaction_type` != 6
+          AND t.`channel_id` = 'BAOFUPAY'
+          AND t.`complete_time` >= #{startTime}
+          AND t.`complete_time` &lt; #{endTime}
+        GROUP BY lo.`product_code`,lo.`cooperation_code`
+    </select>
 </mapper>

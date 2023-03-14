@@ -9,6 +9,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /***
  *
  *
@@ -25,6 +28,13 @@ public class TestController extends BaseController {
     @PostMapping("/test")
     public Result test(@RequestBody VoucherExecuteParam param) throws Exception {
         voucherService.importVoucher(param);
+        return success();
+    }
+
+    @PostMapping("/push")
+    public Result test(@RequestBody Map<String, String> param) throws Exception {
+        String batchNo = param.get("batchNo");
+        voucherService.push(batchNo, null);
         return success();
     }
 

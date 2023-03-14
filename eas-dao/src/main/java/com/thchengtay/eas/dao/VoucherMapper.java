@@ -35,4 +35,8 @@ public interface VoucherMapper extends BaseMapper<VoucherEntity> {
 
     List<VoucherEntity> listByBatchNo(String batchNo);
 
+    List<DiscountInterestDto> discountInterest(LoanOrderCriteria criteria);
+
+    List<PaymentFeeDto> baofuPaymentFee(LoanOrderCriteria criteria);
+
 }
